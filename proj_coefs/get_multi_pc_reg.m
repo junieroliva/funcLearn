@@ -1,4 +1,4 @@
-function [ PC, B, inds ] = get_multi_pc_reg( Y, X, varargin )
+function [ PC, B, inds, Phi ] = get_multi_pc_reg( Y, X, varargin )
 %GET_MULTI_PC_REG Get the projection coefficients of multiple functions
 %   Detailed explanation goes here
 if isempty(varargin)
