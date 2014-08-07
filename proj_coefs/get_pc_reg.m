@@ -16,11 +16,11 @@ if isempty(B)
         if d==1
             inds = (1:M)';
         elseif d==2
-            [i1,i2] = sub2inds([M M], (1:M^2)');
+            [i1,i2] = ind2sub([M M], (1:M^2)');
             inds = [i1 i2];
             inds = inds(sum(inds.^2,2)<=M^2);
         else
-            [i1,i2,i3] = sub2inds([M M M], (1:M^3)');
+            [i1,i2,i3] = ind2sub([M M M], (1:M^3)');
             inds = [i1 i2 i3];
             inds = inds(sum(inds.^2,2)<=M^2);
         end
