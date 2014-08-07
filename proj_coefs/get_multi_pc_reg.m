@@ -21,11 +21,11 @@ if isempty(B)
         elseif d==2
             [i1,i2] = ind2sub([M M], (1:M^2)');
             inds = [i1 i2];
-            inds = inds(sum(inds.^2,2)<=M^2);
+            inds = inds(sum(inds.^2,2)<=M^2,:);
         else
             [i1,i2,i3] = ind2sub([M M M], (1:M^3)');
             inds = [i1 i2 i3];
-            inds = inds(sum(inds.^2,2)<=M^2);
+            inds = inds(sum(inds.^2,2)<=M^2,:);
         end
         % get basis values at X
         basis = get_opt(opts,'basis','trig');
