@@ -1,4 +1,4 @@
-function [ active, sqerr, lambda, lambdae, lambdar, lambdas, lambdaes, lambdars ] = ...
+function [ Y_pred, active, sqerr, lambda, lambdae, lambdar, lambdas, lambdaes, lambdars ] = ...
     cv_mse_FuSSO( Y, PC, p, varargin )
 %cv_mse_FuSSO Summary of this function goes here
 %   Detailed explanation goes here
@@ -34,6 +34,7 @@ lambdaes = get_opt(opts,'lambdaes',[0 4.^(1:3)]);
 opts.lambdaes = lambdaes;
 
 active = nan(N,p);
+Y_pred = nan(N,1);
 sqerr = nan(N,1);
 lambda = nan(N,1);
 lambdae = nan(N,1);
@@ -57,17 +58,18 @@ for i = 1:N
         UtPCPCtY = PCtU'*PCtY;
         beta_act = (1/lambdar(i))*(PCtY-PCtU*(UtPCPCtY./(S+lambdar(i))));
         if intercept
-            sqerr(i) = (Y(i)-PC(i,supp)*beta_act(1:end-1)-beta_act(end)).^2;
+            Y_pred(i) = PC(i,supp)*beta_act(1:end-1)+beta_act(end);
         else
-            sqerr(i) = (Y(i)-PC(i,supp)*beta_act).^2;
+            Y_pred(i) = PC(i,supp)*beta_act;
         end
     else
         if intercept
-            sqerr(i) = (Y(i)-mean(Y(trn_set))).^2 ;
+            Y_pred(i) = mean(Y(trn_set)) ;
         else
-            sqerr(i) = Y(i)^2;
+            Y_pred(i) = 0;
         end
     end
+    sqerr(i) = (Y(i)-Y_pred(i)).^2;
     
     if verbose
         fprintf('###### [i: %i] active: %i, sqerr: %g elapsed:%f \n', i, nactive, sqerr(i), toc(stime));
