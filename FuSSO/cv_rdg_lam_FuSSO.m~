@@ -1,0 +1,65 @@
+function [ lambdar, lambdars ] = cv_rdg_lam_FuSSO( Y, PC, varargin )
+%cv_supp_FuSSO Summary of this function goes here
+%   Detailed explanation goes here
+if isempty(varargin)
+    opts = struct;
+else
+    opts = varargin{1};
+end
+N = size(PC,1);
+M_n = size(PC,2)/p;
+verbose = get_opt(opts,'verbose',false);
+% get lambdas
+intercept = get_opt(opts,'intercept',true);
+lambdars = get_opt(opts,'lambdars',2.^(30:-1:-30));
+nlambdars = length(lambdars);
+% get training/hold-out sets
+trn_set = get_opt(opts,'trn_set',[]);
+if isempty(trn_set)
+    trn_perc = get_opt(opts,'trn_perc',.9);
+    trn_set = false(N,1);
+    trn_set(randperm(N,ceil(N*trn_perc))) = true;
+end
+N_trn = sum(trn_set);
+N_hol = sum(~trn_set);
+PC_hol = PC(~trn_set,:);
+Y_hol = Y(~trn_set);
+PC = PC(trn_set,:);
+Y = Y(trn_set);
+
+best_hol_MSE = inf;
+best_lambdar = nan;
+stime = tic;
+
+[U,S] = eig(PC*PC');
+S = diag(S);
+PCtU = PC'*U;
+PCtY = PC'*Y;
+UtPCPCtY = PCtU'*PCtY;
+hol_MSEs = nan(nlambdars,1);
+for lr=1:nlambdars
+    lambdar = lambdars(lr);
+    %beta_act = (1/lambdar)*(Ig-PC'*U*diag(1./(S+lambdar))*U'*PC)*(PC'*Y);
+    beta_act = (1/lambdar)*(PCtY-PCtU*(UtPCPCtY./(S+lambdar)));
+    hol_MSE = mean( (Y_hol-PC_hol*beta_act).^2 );
+    hol_MSEs(lr) = hol_MSE;
+    if hol_MSE<best_hol_MSE
+        best_hol_MSE = hol_MSE;
+        best_lambdar = lambdars(lr);
+    end
+    if verbose
+        fprintf('[lr:%g] active: %i, hol_mse: %g elapsed:%f \n', lambdars(lr), , toc(stime));
+    end
+end
+
+        
+        
+
+active = best_active;
+supp = best_supp;
+lambda = best_lambda;
+lambdar = best_lambdar;
+lambdae = best_lambdae;
+
+end
+

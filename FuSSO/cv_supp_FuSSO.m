@@ -103,11 +103,13 @@ for le = 1:nlambdaes
             PCtU = PC_act'*U;
             PCtY = PC_act'*Y;
             UtPCPCtY = PCtU'*PCtY;
+            hol_MSEs = nan(nlambdars,1);
             for lr=1:nlambdars
                 lambdar = lambdars(lr);
                 %beta_act = (1/lambdar)*(Ig-PC_act'*U*diag(1./(S+lambdar))*U'*PC_act)*(PC_act'*Y);
                 beta_act = (1/lambdar)*(PCtY-PCtU*(UtPCPCtY./(S+lambdar)));
                 hol_MSE = mean( (Y_hol-PC_hol_act*beta_act).^2 );
+                hol_MSEs(lr) = hol_MSE;
                 if hol_MSE<best_hol_MSE_r
                     best_hol_MSE_r = hol_MSE;
                     best_lambdar_r = lambdars(lr);
