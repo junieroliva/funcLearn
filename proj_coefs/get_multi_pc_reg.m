@@ -38,7 +38,7 @@ if isempty(B)
     else
         opts.Phi = Phi;
         opts.inds = inds;
-        N_rot = get_opt(opts,'N_rot',5);
+        N_rot = get_opt(opts,'N_rot',10);
         irprm = randperm(N,min(N,N_rot));
         m_rots = nan(length(irprm),min(N_rot,p));
         for i=1:length(irprm)

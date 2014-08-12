@@ -20,7 +20,7 @@ if isempty(lambdas)
     else
         Y_0 = Y;
     end
-    max_lambda = max(sqrt(sum(reshape(PC'*Y_0,M_n,[]).^2)));
+    max_lambda = max(sqrt(sum(reshape(PC'*Y_0,M_n,[]).^2,1)));
     b = max_lambda*min_lambda_ratio;
     B = max_lambda;
     lambdas = b*((B/b).^([(nlambdas-1):-1:0]/(nlambdas-1)));
@@ -29,31 +29,34 @@ else
 end
 maxactive = get_opt(opts,'maxactive',inf);
 % set opti params
-cv_opts=struct;
-cv_opts.maxIter=50000;
-cv_opts.epsilon=1E-10;
-cv_opts.accel=true;
-cv_opts.intercept=intercept;
-cv_opts.verbose=false;
-cv_opts.opti_type=1;
-cv_opts.g_size=M_n;
-cv_opts.lambdae=get_opt(opts,'lambdae',0);
-cv_opts=make_glasso_opts(cv_opts);
-funcs=make_glasso_funcs();
+cv_opts = struct;
+cv_opts.maxIter = 50000;
+cv_opts.epsilon = 1E-10;
+cv_opts.accel = true;
+cv_opts.verbose = false;
+
+funcs = make_active_group_lasso_funcs();
+screen = inf(p,1);
+strong_lambdas = inf(p,1);
+params.K = PC;
+params.Y = Y;
+params.gsize = M_n;
+params.lambda1 = 0;
+params.lambdae = get_opt(opts,'lambdae',0);
+params.intercept = intercept;
 
 norms = nan(nlambdas,p);
 objs = nan(nlambdas,1);
 tt_a = zeros(size(PC,2)+intercept,1);
 for l = 1:nlambdas
 	stime = tic;
-    cv_opts.lambda2 = lambdas(l);
-    cv_opts.x_0 = tt_a;
+    params.lambda2 = lambdas(l);
 
-    [tt_a, o] = fista_active(Y, PC, funcs, cv_opts);
+    [tt_a,screen,strong_lambdas,o] = fista_active(tt_a, funcs, lambdas(max(l-1,1)), lambdas(l), strong_lambdas, screen, params, cv_opts);
     if intercept
-        tt_norms = sqrt(sum(reshape(tt_a(1:end-1),M_n,[]).^2));
+        tt_norms = sqrt(sum(reshape(tt_a(1:end-1),M_n,[]).^2,1));
     else
-        tt_norms = sqrt(sum(reshape(tt_a,M_n,[]).^2));
+        tt_norms = sqrt(sum(reshape(tt_a,M_n,[]).^2,1));
     end
     nactive = sum(tt_norms>0);
     

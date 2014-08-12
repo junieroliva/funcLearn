@@ -22,31 +22,23 @@
 % - Returns -
 %   x: optimizer found
 %   objs: objectives at each iteration (padded with nans)
-function [x, objs] = fista( Y, K, funcs, opts )
-p = size(K,2);
-q = size(Y,2);
-
+function [x, objs] = fista( x_0, funcs, opts )
 % set options
-beta = opts.beta;
-maxIter = opts.maxIter;
-epsilon = opts.epsilon;
-t_k = opts.t_k;
-verbose = opts.verbose;
-
+beta = get_opt(opts,'beta',.8);
+maxIter = get_opt(opts,'maxIter',1000);
+epsilon = get_opt(opts,'epsilon',1E-8);
+t_k = get_opt(opts,'t_0',1);
+verbose = get_opt(opts,'verbose',false);
 % initialize variables
-x_curr = get_opt(opts,'x_0',zeros(p,q));
-objs = nan(maxIter,1);
+x_curr = x_0;
+objs = nan(maxIter+1,1);
 u_curr = x_curr;
-obj_curr = funcs.obj(Y,K,x_curr,opts);
+obj_curr = funcs.obj(x_curr);
 objs(1) = obj_curr;
-
-if verbose
-    fprintf('# Beginning Regression with %i co-variates \n', p);
-end
 % main loop
 for k = 1:maxIter
     if verbose
-        funcs.opt_msg(k,x_curr,opts);
+        fprintf('fista obj: %d\n', obj_curr);
     end
     x_prev = x_curr;
     obj_prev = obj_curr;
@@ -55,13 +47,13 @@ for k = 1:maxIter
     y = (1-theta_k)*x_curr + theta_k*u_curr;
     % backtracking
     gx = inf; acceptable = -inf; t_k = t_k/beta;
-    grad_gy = funcs.grad_g(Y,K,y,opts);
-    gy = funcs.g(Y,K,y,opts);
+    grad_gy = funcs.grad_g(y);
+    gy = funcs.g(y);
     while gx > acceptable
         t_k = beta*t_k;
-        x_curr = funcs.prox(y-t_k*grad_gy,t_k,opts);
+        x_curr = funcs.prox(y-t_k*grad_gy,t_k);
         x_minus_y = x_curr-y;
-        gx = funcs.g(Y,K,x_curr,opts);
+        gx = funcs.g(x_curr);
         acceptable = gy + grad_gy(:)'*x_minus_y(:)+x_minus_y(:)'*x_minus_y(:)/(2*t_k);
         if verbose
             fprintf('\t{%d}\t[g_new: %f]\t[accept: %f]\n', t_k, gx, acceptable);
@@ -69,7 +61,7 @@ for k = 1:maxIter
     end
     u_curr = x_prev+(x_curr-x_prev)/theta_k;
     % update objective    
-    obj_curr = funcs.obj(Y,K,x_curr,opts);
+    obj_curr = funcs.obj(x_curr);
     objs(k+1) = obj_curr;
     if verbose
         fprintf('\t{%d}\t[obj_curr: %f]\n', t_k, obj_curr);
@@ -80,5 +72,5 @@ for k = 1:maxIter
     end
 end
 x = x_curr;
-    
+objs = objs(1:k+1);
 end

@@ -21,7 +21,7 @@ if isempty(lambdas)
     else
         Y_0 = Y;
     end
-    max_lambda = max(sqrt(sum(reshape(PC'*Y_0,M_n,[]).^2)));
+    max_lambda = max(sqrt(sum(reshape(PC'*Y_0,M_n,[]).^2,1)));
     b = max_lambda*min_lambda_ratio;
     B = max_lambda;
     lambdas = b*((B/b).^([(nlambdas-1):-1:0]/(nlambdas-1)));
@@ -31,7 +31,7 @@ end
 maxactive = get_opt(opts,'maxactive',inf);
 lambdars = get_opt(opts,'lambdars',10.^(15:-1:-15));
 nlambdars = length(lambdars);
-lambdaes = get_opt(opts,'lambdaes',[0 4.^(1:3)]);
+lambdaes = get_opt(opts,'lambdaes',[0 4.^(1:2)]);
 nlambdaes = length(lambdaes);
 % get training/hold-out sets
 trn_set = get_opt(opts,'trn_set',[]);
@@ -46,17 +46,22 @@ PC_hol = PC(~trn_set,:);
 Y_hol = Y(~trn_set);
 PC = PC(trn_set,:);
 Y = Y(trn_set);
+
 % set opti params
 cv_opts = struct;
 cv_opts.maxIter = 50000;
 cv_opts.epsilon = 1E-10;
 cv_opts.accel = true;
-cv_opts.intercept = intercept;
 cv_opts.verbose = false;
-cv_opts.opti_type = 1;
-cv_opts.g_size = M_n;
-cv_opts = make_glasso_opts(cv_opts);
-funcs = make_glasso_funcs();
+
+funcs = make_active_group_lasso_funcs();
+screen = inf(p,1);
+strong_lambdas = inf(p,1);
+params.K = PC;
+params.Y = Y;
+params.gsize = M_n;
+params.lambda1 = 0;
+params.intercept = intercept;
 
 best_hol_MSE = inf;
 best_active = [];
@@ -66,17 +71,16 @@ best_lambdar = nan;
 best_lambdae = nan;
 stime = tic;
 for le = 1:nlambdaes
-    cv_opts.lambdae = lambdaes(le);
+    params.lambdae = lambdaes(le);
     tt_a = zeros(size(PC,2)+intercept,1);
     for l = 1:nlambdas
-        cv_opts.lambda2 = lambdas(l);
-        cv_opts.x_0 = tt_a;
+        params.lambda2 = lambdas(l);
 
-        tt_a = fista_active(Y, PC, funcs, cv_opts);
+        [tt_a,screen,strong_lambdas] = fista_active(tt_a, funcs, lambdas(max(l-1,1)), lambdas(l), strong_lambdas, screen, params, cv_opts);
         if intercept
-            tt_norms = sqrt(sum(reshape(tt_a(1:end-1),M_n,[]).^2));
+            tt_norms = sqrt(sum(reshape(tt_a(1:end-1),M_n,[]).^2,1));
         else
-            tt_norms = sqrt(sum(reshape(tt_a,M_n,[]).^2));
+            tt_norms = sqrt(sum(reshape(tt_a,M_n,[]).^2,1));
         end
         gactive = tt_norms>0;
         nactive = sum(gactive);

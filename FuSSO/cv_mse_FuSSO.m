@@ -22,7 +22,7 @@ if isempty(lambdas)
     else
         Y_0 = Y;
     end
-    max_lambda = max(sqrt(sum(reshape(PC'*Y_0,M_n,[]).^2)));
+    max_lambda = max(sqrt(sum(reshape(PC'*Y_0,M_n,[]).^2,1)));
     b = max_lambda*min_lambda_ratio;
     B = max_lambda;
     lambdas = b*((B/b).^([(nlambdas-1):-1:0]/(nlambdas-1)));
@@ -30,7 +30,7 @@ if isempty(lambdas)
 end
 lambdars = get_opt(opts,'lambdars',10.^(15:-1:-15));
 opts.lambdars = lambdars;
-lambdaes = get_opt(opts,'lambdaes',[0 4.^(1:3)]);
+lambdaes = get_opt(opts,'lambdaes',[0 4.^(1:2)]);
 opts.lambdaes = lambdaes;
 
 active = nan(N,p);
