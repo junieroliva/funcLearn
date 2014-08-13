@@ -45,9 +45,10 @@ params.lambda1 = 0;
 params.lambdae = get_opt(opts,'lambdae',0);
 params.intercept = intercept;
 
-supps = false(nlambdas,p);
 if nargout>=5
     betas = cell(1,nlambdas);
+else
+    betas = get_opt(opts,'betas');
 end
 norms = nan(nlambdas,p);
 objs = nan(nlambdas,1);
@@ -55,6 +56,10 @@ tt_a = zeros(size(PC,2)+intercept,1);
 stime = tic;
 for l = 1:nlambdas
     params.lambda2 = lambdas(l);
+    
+    if ~isempty(betas)
+        tt_a = full(betas{1,l});
+    end
 
     [tt_a,screen,strong_lambdas,o] = fista_active(tt_a, funcs, lambdas(max(l-1,1)), lambdas(l), strong_lambdas, screen, params, cv_opts);
     if intercept
@@ -62,13 +67,12 @@ for l = 1:nlambdas
     else
         tt_norms = sqrt(sum(reshape(tt_a,M_n,[]).^2,1));
     end
-    supps(l,:) = tt_norms>0;
-    nactive = sum(supps(l,:));
+    nactive = sum(tt_norms>0);
     
     norms(l,:) = tt_norms;
 	objs(l) = o(end);
     
-    if nargout>=5
+    if nargout>=4
         betas{l} = sparse(tt_a);
     end
     

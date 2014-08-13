@@ -46,7 +46,7 @@ parfor i = 1:N
     trn_set(i) = false;
     cv_lambda = nan(ntrls,1);
     cv_lambdae = nan(ntrls,1);
-    cv_lambdar = nan(ntrls,1);
+    cv_lambdar = nan(ntrls,1);-0
     for trl=1:ntrls
         if verbose
             fprintf('*** [i: %i] trial: %i elapsed:%f \n', i, trl, toc(stime));
@@ -59,11 +59,10 @@ parfor i = 1:N
     lambda(i) = lambdas(li);
     topts = opts;
     topts.lambdas = lambdas(1:li);
-    topts.lambdae = lambdae(i);
     [~,norms] = eval_FuSSO( Y(trn_set), PC(trn_set,:), p, topts );
     active(i,:) = norms(end,:)>0;
     supp = repmat(active(i,:),M_n,1);
-    supp = supp(:)>0;
+    supp = supp(:);
     
     nactive = sum(active(i,:));
     if nactive>0
@@ -94,7 +93,6 @@ parfor i = 1:N
     
     if verbose
         fprintf('###### [i: %i] active: %i, sqerr: %g elapsed:%f \n', i, nactive, sqerr(i), toc(stime));
-        fprintf('###### [i: %i] lambda: %i, lambdae: %g lambdar:%g \n', i, lambda(i), lambdae(i), lambdar(i));
     end
 end
 

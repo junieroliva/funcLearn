@@ -7,7 +7,6 @@ else
     opts = varargin{1};
 end
 N = size(PC,1);
-M_n = size(PC,2)/p;
 verbose = get_opt(opts,'verbose',false);
 % get lambdas
 intercept = get_opt(opts,'intercept',true);
@@ -22,9 +21,14 @@ if isempty(trn_set)
 end
 N_trn = sum(trn_set);
 N_hol = sum(~trn_set);
-PC_hol = PC(~trn_set,:);
+if intercept
+    PC_hol = [PC(~trn_set,:) ones(N_hol,1)];
+    PC = [PC(trn_set,:) ones(N_trn,1)];
+else
+    PC_hol = PC(~trn_set,:);
+    PC = PC(trn_set,:);
+end
 Y_hol = Y(~trn_set);
-PC = PC(trn_set,:);
 Y = Y(trn_set);
 
 best_hol_MSE = inf;
@@ -48,7 +52,7 @@ for lr=1:nlambdars
         best_lambdar = lambdars(lr);
     end
     if verbose
-        fprintf('[lr:%g] active: %i, hol_mse: %g elapsed:%f \n', lambdars(lr), hol_MSEs(lr), toc(stime));
+        fprintf('[lr:%g] hol_mse: %g elapsed:%f \n', lambdars(lr), hol_MSEs(lr), toc(stime));
     end
 end
 

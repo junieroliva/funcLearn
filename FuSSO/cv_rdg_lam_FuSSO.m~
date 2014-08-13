@@ -1,4 +1,4 @@
-function [ lambdar, lambdars ] = cv_rdg_lam_FuSSO( Y, PC, varargin )
+function [ lambdar, lambdars, MSE ] = cv_rdg_lam_FuSSO( Y, PC, varargin )
 %cv_supp_FuSSO Summary of this function goes here
 %   Detailed explanation goes here
 if isempty(varargin)
@@ -7,7 +7,6 @@ else
     opts = varargin{1};
 end
 N = size(PC,1);
-M_n = size(PC,2)/p;
 verbose = get_opt(opts,'verbose',false);
 % get lambdas
 intercept = get_opt(opts,'intercept',true);
@@ -48,18 +47,12 @@ for lr=1:nlambdars
         best_lambdar = lambdars(lr);
     end
     if verbose
-        fprintf('[lr:%g] active: %i, hol_mse: %g elapsed:%f \n', lambdars(lr), , toc(stime));
+        fprintf('[lr:%g] active: %i, hol_mse: %g elapsed:%f \n', lambdars(lr), hol_MSEs(lr), toc(stime));
     end
 end
 
-        
-        
-
-active = best_active;
-supp = best_supp;
-lambda = best_lambda;
 lambdar = best_lambdar;
-lambdae = best_lambdae;
+MSE = best_hol_MSE;
 
 end
 
