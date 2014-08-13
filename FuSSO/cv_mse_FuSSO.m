@@ -94,7 +94,7 @@ parfor i = 1:N
     
     if verbose
         fprintf('###### [i: %i] active: %i, sqerr: %g elapsed:%f \n', i, nactive, sqerr(i), toc(stime));
-        fprintf('###### [i: %i] lambda: %i, lambdae: %g lambdar:%g \n', i, lambda(i), lambdae(i), lambdar(i));
+        fprintf('###### [i: %i] lambda: %g, lambdae: %g lambdar:%g \n', i, lambda(i), lambdae(i), lambdar(i));
     end
 end
 

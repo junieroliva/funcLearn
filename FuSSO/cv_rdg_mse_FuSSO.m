@@ -12,8 +12,9 @@ verbose = get_opt(opts,'verbose',false);
 % get lambdas
 intercept = get_opt(opts,'intercept',true);
 opts.intercept = intercept;
-lambdars = get_opt(opts,'lambdars',2.^(30:-1:-30));
+lambdars = get_opt(opts,'lambdars',2.^(20:-1:-20));
 opts.lambdars = lambdars;
+nfolds = get_opt(opts,'nfolds',5);
 
 norms = nan(N,p);
 Y_pred = nan(N,1);
@@ -21,9 +22,19 @@ sqerr = nan(N,1);
 lambdar = nan(N,1);
 stime = tic;
 for i = 1:N
+    topts = opts;
     trn_set = true(N,1);
     trn_set(i) = false;
-    lambdar(i) = cv_rdg_lam_FuSSO( Y(trn_set), PC(trn_set,:), opts );
+    cv_lambdar = nan(nfolds,1);
+    finds = crossvalind('Kfold', N-1, nfolds);
+    for trl=1:nfolds
+        if verbose
+            fprintf('*** [i: %i] trial: %i elapsed:%f \n', i, trl, toc(stime));
+        end
+        topts.trn_set = finds==trl;
+        cv_lambdar(trl) = cv_rdg_lam_FuSSO( Y(trn_set), PC(trn_set,:), topts );
+    end
+    lambdar(i) = mean(cv_lambdar);
 
     if intercept
         PC_act = [PC(trn_set,:) ones(N-1,1)];
@@ -47,7 +58,7 @@ for i = 1:N
     sqerr(i) = (Y(i)-Y_pred(i)).^2;
     
     if verbose
-        fprintf('###### [i: %i] sqerr: %g elapsed:%f \n', i, sqerr(i), toc(stime));
+        fprintf('###### [i: %i] sqerr: %g lambdar: %g elapsed: %fs \n', i, sqerr(i), lambdar(i) , toc(stime));
     end
 end
 

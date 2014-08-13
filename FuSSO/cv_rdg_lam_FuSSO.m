@@ -15,7 +15,7 @@ nlambdars = length(lambdars);
 % get training/hold-out sets
 trn_set = get_opt(opts,'trn_set',[]);
 if isempty(trn_set)
-    trn_perc = get_opt(opts,'trn_perc',.9);
+    trn_perc = get_opt(opts,'trn_perc',.8);
     trn_set = false(N,1);
     trn_set(randperm(N,ceil(N*trn_perc))) = true;
 end
