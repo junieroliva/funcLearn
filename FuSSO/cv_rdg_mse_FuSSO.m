@@ -26,13 +26,15 @@ for i = 1:N
     trn_set = true(N,1);
     trn_set(i) = false;
     cv_lambdar = nan(nfolds,1);
+    cv_MSE = nan(nfolds,1);
+    cv_MSEs = nan(nfolds,length(lambdars));
     finds = crossvalind('Kfold', N-1, nfolds);
     for trl=1:nfolds
         if verbose
             fprintf('*** [i: %i] trial: %i elapsed:%f \n', i, trl, toc(stime));
         end
-        topts.trn_set = finds==trl;
-        cv_lambdar(trl) = cv_rdg_lam_FuSSO( Y(trn_set), PC(trn_set,:), topts );
+        topts.trn_set = finds~=trl;
+        [cv_lambdar(trl), ~, cv_MSE(trl), cv_MSEs(trl,:)] = cv_rdg_lam_FuSSO( Y(trn_set), PC(trn_set,:), topts );
     end
     lambdar(i) = mean(cv_lambdar);
 

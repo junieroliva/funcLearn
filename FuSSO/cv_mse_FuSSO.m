@@ -32,7 +32,7 @@ lambdars = get_opt(opts,'lambdars',2.^(20:-1:-20));
 opts.lambdars = lambdars;
 lambdaes = get_opt(opts,'lambdaes',[0 4.^(1:2)]);
 opts.lambdaes = lambdaes;
-ntrls = get_opt(opts,'ntrls',3);
+nfolds = get_opt(opts,'nfolds',5);
 
 active = nan(N,p);
 Y_pred = nan(N,1);
@@ -42,16 +42,19 @@ lambdae = nan(N,1);
 lambdar = nan(N,1);
 stime = tic;
 parfor i = 1:N
+    topts = opts;
     trn_set = true(N,1);
     trn_set(i) = false;
     cv_lambda = nan(ntrls,1);
     cv_lambdae = nan(ntrls,1);
     cv_lambdar = nan(ntrls,1);
-    for trl=1:ntrls
+    finds = crossvalind('Kfold', N-1, nfolds);
+    for trl=1:nfolds
         if verbose
             fprintf('*** [i: %i] trial: %i elapsed:%f \n', i, trl, toc(stime));
         end
-        [ ~, ~, cv_lambda(trl), cv_lambdae(trl), cv_lambdar(trl) ] = cv_supp_FuSSO( Y(trn_set), PC(trn_set,:), p, opts );
+        topts.trn_set = finds~=trl;
+        [ ~, ~, cv_lambda(trl), cv_lambdae(trl), cv_lambdar(trl) ] = cv_supp_FuSSO( Y(trn_set), PC(trn_set,:), p, topts );
     end
     lambdae(i) = mean(cv_lambdae);
     lambdar(i) = mean(cv_lambdar);
