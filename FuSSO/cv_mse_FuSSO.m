@@ -45,7 +45,7 @@ lambdar = nan(noutfolds,1);
 betas = cell(noutfolds,1);
 outfolds = crossvalind('Kfold', N, noutfolds);
 stime = tic;
-for i = 1:noutfolds
+parfor i = 1:noutfolds
     topts = opts;
     trn_set = true(N,1);
     trn_set(outfolds==i) = false;
