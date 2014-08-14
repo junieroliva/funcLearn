@@ -45,9 +45,9 @@ parfor i = 1:N
     topts = opts;
     trn_set = true(N,1);
     trn_set(i) = false;
-    cv_lambda = nan(ntrls,1);
-    cv_lambdae = nan(ntrls,1);
-    cv_lambdar = nan(ntrls,1);
+    cv_lambda = nan(nfolds,1);
+    cv_lambdae = nan(nfolds,1);
+    cv_lambdar = nan(nfolds,1);
     finds = crossvalind('Kfold', N-1, nfolds);
     for trl=1:nfolds
         if verbose
