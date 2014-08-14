@@ -134,7 +134,7 @@ for le = 1:nlambdaes
                 best_active = gactive;
                 best_supp = active;
                 best_lambda = lambdas(l);
-                best_lambdar = nan;
+                best_lambdar = max(lambdars);
                 best_lambdae = lambdaes(le);
             end
         end
