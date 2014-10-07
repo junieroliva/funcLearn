@@ -1,4 +1,4 @@
-function [ lambdar, lambdars, MSE, hol_MSEs ] = cv_rdg_lam_FuSSO( Y, PC, varargin )
+function [ lambdar, lambdars, MSE, hol_MSEs, beta ] = cv_rdg_lam_FuSSO( Y, PC, varargin )
 %cv_supp_FuSSO Summary of this function goes here
 %   Detailed explanation goes here
 if isempty(varargin)
@@ -6,7 +6,7 @@ if isempty(varargin)
 else
     opts = varargin{1};
 end
-N = size(PC,1);
+[N,d] = size(PC);
 verbose = get_opt(opts,'verbose',false);
 % get lambdas
 intercept = get_opt(opts,'intercept',true);
@@ -33,6 +33,7 @@ Y = Y(trn_set);
 
 best_hol_MSE = inf;
 best_lambdar = nan;
+best_beta = nan(d,1);
 stime = tic;
 
 [U,S] = eig(PC*PC');
@@ -43,6 +44,7 @@ UtPCPCtY = PCtU'*PCtY;
 hol_MSEs = nan(nlambdars,1);
 for lr=1:nlambdars
     lambdar = lambdars(lr);
+    %beta_act = (PC'*PC+lambdar*eye(d))\(PC'*Y);
     %beta_act = (1/lambdar)*(Ig-PC'*U*diag(1./(S+lambdar))*U'*PC)*(PC'*Y);
     beta_act = (1/lambdar)*(PCtY-PCtU*(UtPCPCtY./(S+lambdar)));
     hol_MSE = mean( (Y_hol-PC_hol*beta_act).^2 );
@@ -50,6 +52,7 @@ for lr=1:nlambdars
     if hol_MSE<best_hol_MSE
         best_hol_MSE = hol_MSE;
         best_lambdar = lambdars(lr);
+        best_beta = beta_act;
     end
     if verbose
         fprintf('[lr:%g] hol_mse: %g elapsed:%f \n', lambdars(lr), hol_MSEs(lr), toc(stime));
@@ -58,6 +61,6 @@ end
 
 lambdar = best_lambdar;
 MSE = best_hol_MSE;
-
+beta = best_beta;
 end
 
