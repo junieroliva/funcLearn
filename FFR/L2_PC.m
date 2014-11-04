@@ -52,8 +52,8 @@ if CV
     end
     cv_t2 = mean(cv_t2);
     ind_used = ind_used(norms<=cv_t2);
-    inds = inds(ind_used,:);
 end
+inds = inds(ind_used,:);
 
 PCs = nan(N,length(inds));
 parfor i=1:N   
