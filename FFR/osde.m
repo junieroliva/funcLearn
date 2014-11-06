@@ -34,7 +34,7 @@ if iscell(x) % bulk mode, cv sigma2 on a subset if needed
         [sv,si] = sort(norms);
         ind_used = si(sv<=max_norm);
         
-        opts.inds = inds(ind_used);
+        opts.inds = inds(ind_used,:);
         osp.inds = opts.inds;
     end
     % compute the projection coefficients
@@ -63,7 +63,7 @@ else
         [sv,si] = sort(norms);
         ind_used = si(sv<=max_norm);
         norms = norms(ind_used);
-        inds = inds(ind_used);
+        inds = inds(ind_used,:);
         % evaluate the basis functions given by the indices
         phix = evalbasis(x, inds);
         pc = mean(phix);
