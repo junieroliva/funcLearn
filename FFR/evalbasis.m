@@ -1,6 +1,6 @@
 function phix = evalbasis(x, inds)
 
-[n,d] = size(x,1);
+[n,d] = size(x);
 phix = ones(n,size(inds,1));
 for i=1:d
     imax = max(inds(:,i))-1;
