@@ -69,13 +69,13 @@ else
                 rks.sigma2 = kde.sigma2;
                 rks.norma = kde.norma;
             else
-                norma = gauss_norma(x,rks.sigma2,rks.trunc);
+                rks.norma = gauss_norma(x,rks.sigma2,rks.trunc);
             end
             
             rks.D = get_opt(rks, 'D', 1000);
             rks.W = sqrt(1./rks.sigma2)*randn(d,rks.D);
             rks.b = 2*pi*rand(1,rks.D);
-            rks.pc = (norma'*sqrt(2/rks.D)*cos(bsxfun(@plus,x*rks.W,rks.b)))';
+            rks.pc = (rks.norma'*sqrt(2/rks.D)*cos(bsxfun(@plus,x*rks.W,rks.b)))';
         end
     end
 
