@@ -56,7 +56,7 @@ for i = 1:noutfolds
         norms(i,:) = sqrt(sum(reshape(beta_act(1:end-1),M_n,[]).^2,1));
     else
         cY_pred{i} = PC(~trn_set,:)*beta_act;
-        norms(i,:) = sqrt(sum(reshape(beta_act,M_n,1).^2,[]));
+        norms(i,:) = sqrt(sum(reshape(beta_act,M_n,[]).^2,[]));
     end
 
     csqerr{i} = (Y(~trn_set)-cY_pred{i}).^2;

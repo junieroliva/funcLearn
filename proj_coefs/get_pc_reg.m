@@ -1,4 +1,4 @@
-function [ beta, B, inds ] = get_pc_reg( Y, X, varargin )
+function [ beta, B, inds, Phi ] = get_pc_reg( Y, X, varargin )
 %GET_PC_REG Get projection coefficients for regressing a function
 %   Detailed explanation goes here
 if isempty(varargin)
@@ -8,6 +8,7 @@ else
 end
 [n, d] = size(X);
 B = get_opt(opts,'B',[]);
+Phi = [];
 if isempty(B)
     Phi = get_opt(opts,'Phi',[]);
     if isempty(Phi)
@@ -53,6 +54,7 @@ if isempty(B)
         ii = lnorm2s(lni);
         B = (Phi(:,1:ii)'*Phi(:,1:ii))\(Phi(:,1:ii)');
         inds = inds(1:ii,:);
+        Phi = Phi(:,1:ii);
     end
 end
 beta = B*Y;

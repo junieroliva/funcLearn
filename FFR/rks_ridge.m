@@ -1,4 +1,4 @@
-function [tst_mse, S, tst_set, W, b, XW, hmse] = rks_ridge(X, Y, varargin)
+function [tst_mse, B, tst_set, W, b, XW, hmse] = rks_ridge(X, Y, varargin)
 %rks_ridge   Ridge regression with random kitchen sinks. Validates the
 %       bandwidth and ridge penalty parameters on a hold-out set.
 %   Inputs - 
@@ -75,43 +75,61 @@ end
 b = (2*pi)*rand(1,D);
 
 % cross-validate bandwitdth/lambda using kitchen sinks
+ridge_opts.lambdas = lambdas;
+ridge_opts.cv = 'hold';
+ridge_opts.trn_set = trn_set(~tst_set);
 stime = tic;
 nsigma2s = length(sigma2s);
-eyeD = speye(D);
+%eyeD = speye(D);
 hol_mses = nan(nsigma2s,nlambdas);
+min_mse = inf;
+mli = nan;
+msi = nan;
+B = nan;
 for si = 1:nsigma2s
     sigma2 = sigma2s(si);
     % features
-    Phi = sqrt(2/D)*cos(bsxfun(@plus,sqrt(1/sigma2)*XW(trn_set,:),b));
-    PhiTPhi = Phi'*Phi;
-    PhiTY = Phi'*Y(trn_set,:);
-    clear Phi
-    % CV lambdas
-    for li = 1:nlambdas
-        lambda = lambdas(li);
-        S = (PhiTPhi+lambda*eyeD)\PhiTY;
-        h_Phi = sqrt(2/D)*cos(bsxfun(@plus,sqrt(1/sigma2)*XW(hol_set,:),b));
-        h_pred = h_Phi*S;
-        hol_mses(si,li) = mean( sum( (Y(hol_set,:)-h_pred).^2, 2 ) );
-        if verbose
-            fprintf('CV: bw = %g, lambda = %g, score:%g \n',sigma2, lambda, hol_mses(si,li));
-        end
+    Phi = sqrt(2/D)*cos(bsxfun(@plus,sqrt(1/sigma2)*XW(~tst_set,:),b));
+    % regress based on random features
+    rreg = ridge_reg(Phi, Y(~tst_set,:), ridge_opts);
+    hol_mses(si,:) = rreg.cv.lam_mse;
+    [mv,mi] = min(rreg.cv.lam_mse);
+    if mv<min_mse
+        msi = si;
+        mli = mi;
+        B = rreg.beta;
     end
+%     PhiTPhi = Phi'*Phi;
+%     PhiTY = Phi'*Y(trn_set,:);
+%     clear Phi
+%     % CV lambdas
+%     for li = 1:nlambdas
+%         lambda = lambdas(li);
+%         S = (PhiTPhi+lambda*eyeD)\PhiTY;
+%         h_Phi = sqrt(2/D)*cos(bsxfun(@plus,sqrt(1/sigma2)*XW(hol_set,:),b));
+%         h_pred = h_Phi*S;
+%         hol_mses(si,li) = mean( sum( (Y(hol_set,:)-h_pred).^2, 2 ) );
+%         if verbose
+%             fprintf('CV: bw = %g, lambda = %g, score:%g \n',sigma2, lambda, hol_mses(si,li));
+%         end
+%     end
 end
 % get optimal
-hmse = min(hol_mses(:));
-[si, li] = find(hol_mses==hmse);
-sigma2 = sigma2s(si);
-lambda = lambdas(li);
+% hmse = min(hol_mses(:));
+% [si, li] = find(hol_mses==hmse);
+% sigma2 = sigma2s(si);
+% lambda = lambdas(li);
+sigma2 = sigma2s(msi);
+lambda = lambdas(mli);
 W = sqrt(1/sigma2)*W;
 
 % get predicted response for test instances
-Phi = sqrt(2/D)*cos(bsxfun(@plus,sqrt(1/sigma2)*XW(trn_set|hol_set,:),b));
-PhiTPhi = Phi'*Phi;
-PhiTY = Phi'*Y(trn_set|hol_set,:);
-S = (PhiTPhi+lambda*eyeD)\PhiTY;
+% Phi = sqrt(2/D)*cos(bsxfun(@plus,sqrt(1/sigma2)*XW(trn_set|hol_set,:),b));
+% PhiTPhi = Phi'*Phi;
+% PhiTY = Phi'*Y(trn_set|hol_set,:);
+% B = (PhiTPhi+lambda*eyeD)\PhiTY;
 t_Phi = sqrt(2/D)*cos(bsxfun(@plus,sqrt(1/sigma2)*XW(tst_set,:),b));
-pred_projs = t_Phi*S;
+pred_projs = t_Phi*B;
 
 % errors
 mean_pred_mse = mean( sum( bsxfun(@minus,Y(tst_set,:),mean(Y(tst_set,:))).^2, 2 ) );
