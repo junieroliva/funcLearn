@@ -75,12 +75,13 @@ end
 b = (2*pi)*rand(1,D);
 
 % cross-validate bandwitdth/lambda using kitchen sinks
-ridge_opts.lambdas = lambdas;
+ridge_opts.lambdars = lambdas;
 ridge_opts.cv = 'hold';
 ridge_opts.trn_set = trn_set(~tst_set);
+ridge_opts.eigen_decomp = get_opt(opts,'eigen_decomp', false);
 stime = tic;
 nsigma2s = length(sigma2s);
-%eyeD = speye(D);
+eyeD = speye(D);
 hol_mses = nan(nsigma2s,nlambdas);
 min_mse = inf;
 mli = nan;
@@ -99,6 +100,7 @@ for si = 1:nsigma2s
         mli = mi;
         B = rreg.beta;
     end
+%     Phi = sqrt(2/D)*cos(bsxfun(@plus,sqrt(1/sigma2)*XW(trn_set,:),b));
 %     PhiTPhi = Phi'*Phi;
 %     PhiTY = Phi'*Y(trn_set,:);
 %     clear Phi
@@ -115,8 +117,8 @@ for si = 1:nsigma2s
 %     end
 end
 % get optimal
-% hmse = min(hol_mses(:));
-% [si, li] = find(hol_mses==hmse);
+hmse = min(hol_mses(:));
+% [msi, mli] = find(hol_mses==hmse);
 % sigma2 = sigma2s(si);
 % lambda = lambdas(li);
 sigma2 = sigma2s(msi);

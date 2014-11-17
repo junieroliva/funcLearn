@@ -5,7 +5,7 @@ function [ osp, p ] = osde( x, varargin )
 if ~isempty(varargin) && ~isstruct(varargin{1})
     xe = varargin{1};
 else
-    xe = x;
+    xe = [];
 end
 if ~isempty(varargin) && isstruct(varargin{1})
     opts = varargin{1};
