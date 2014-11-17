@@ -1,4 +1,4 @@
-function [tst_mse, B, tst_set, W, b, XW, hmse] = rks_ridge(X, Y, varargin)
+function [tst_mse, Y_pred, B, tst_set, W, b, XW, hmse] = rks_ridge(X, Y, varargin)
 %rks_ridge   Ridge regression with random kitchen sinks. Validates the
 %       bandwidth and ridge penalty parameters on a hold-out set.
 %   Inputs - 
@@ -133,11 +133,11 @@ W = sqrt(1/sigma2)*W;
 % PhiTY = Phi'*Y(trn_set|hol_set,:);
 % B = (PhiTPhi+lambda*eyeD)\PhiTY;
 t_Phi = sqrt(2/D)*cos(bsxfun(@plus,sqrt(1/sigma2)*XW(tst_set,:),b));
-pred_projs = t_Phi*B;
+Y_pred = t_Phi*B;
 
 % errors
 mean_pred_mse = mean( sum( bsxfun(@minus,Y(tst_set,:),mean(Y(tst_set,:))).^2, 2 ) );
-tst_mse = mean( sum( (Y(tst_set,:)-pred_projs).^2, 2 ) );
+tst_mse = mean( sum( (Y(tst_set,:)-Y_pred).^2, 2 ) );
 if verbose
     fprintf('TEST: bw = %g, lambda = %g, score: %g, mean_pred score: %g (CVed in %g secs)\n',sigma2, lambda, tst_mse, mean_pred_mse, toc(stime));
 end
