@@ -10,11 +10,11 @@ if isfield(design,'S')
         SM = X*U*bsxfun(@times,UtXt,1./(S+lambda));
     end
 else
-    if design.isfat
-        % TODO: implement
-    else
+%     if design.isfat
+%         % TODO: implement
+%     else
         XtX = design.XtX;
         SM = X*((XtX+lambda*eye(length(XtX))) \ X');
-    end
+%     end
 end
 end

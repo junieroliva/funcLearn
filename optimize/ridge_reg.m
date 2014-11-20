@@ -13,6 +13,7 @@ if strcmp(cv,'none') && length(lambdars)>1
 end
 rreg.cv.lambdars = lambdars;
 eigen_decomp = get_opt(opts,'eigen_decomp',true);
+verbose = get_opt(opts, 'verbose', false);
 
 [n,~] = size(X);
 nlams = length(lambdars);
@@ -54,6 +55,10 @@ switch cv
     otherwise
         li=1;
         
+end
+
+if verbose
+    fprintf('\tlam_i: (%i,%f), {%f}\n', li, lambdars(li), min(lam_mse(:)) );
 end
 
 beta = rreg_beta(rstats, lambdars(li));

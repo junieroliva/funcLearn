@@ -10,12 +10,12 @@ if isfield(design,'S')
         XtXinvXt = U*bsxfun(@times,UtXt,1./(S+lambda));
     end
 else
-    if design.isfat
-        % TODO: implement
-    else
+%     if design.isfat
+%         % TODO: implement
+%     else
         XtX = design.XtX;
         XtXinvXt = (XtX+lambda*eye(length(XtX))) \ X';
-    end
+%     end
 end
     SMii = sum(X.*XtXinvXt',2);
 end

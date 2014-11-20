@@ -47,7 +47,7 @@ end
 N_TRAIN = sum(trn_set);
 
 % ridge penalties
-lambdas = get_opt(opts,'lambdas',[1/64 1/32 1/16 1/8 1/4 1/2 1 2 4 8 16]);
+lambdas = get_opt(opts,'lambdas',[1/128 1/64 1/32 1/16 1/8 1/4 1/2 1 2 4 8 16 32 64 128]);
 nlambdas = length(lambdas);
 
 % get bandwidths to validate and random features
@@ -77,10 +77,13 @@ end
 b = (2*pi)*rand(1,D);
 
 % cross-validate bandwitdth/lambda using kitchen sinks
-ridge_opts.lambdars = lambdas;
-ridge_opts.cv = 'hold';
-ridge_opts.trn_set = trn_set(~tst_set);
-ridge_opts.eigen_decomp = get_opt(opts,'eigen_decomp', false);
+reg_opts = get_opt(opts,'reg_opts',struct);
+reg_opts.lambdars = lambdas;
+reg_opts.cv = 'hold';
+reg_opts.trn_set = trn_set(~tst_set);
+reg_opts.eigen_decomp = get_opt(opts,'eigen_decomp', false);
+reg_opts.A = get_opt(opts,'A', eye(size(Y,2)));
+
 stime = tic;
 nsigma2s = length(sigma2s);
 eyeD = speye(D);
@@ -94,7 +97,7 @@ for si = 1:nsigma2s
     % features
     Phi = sqrt(2/D)*cos(bsxfun(@plus,sqrt(1/sigma2)*XW(~tst_set,:),b));
     % regress based on random features
-    rreg = reg_func(Phi, Y(~tst_set,:), ridge_opts);
+    rreg = reg_func(Phi, Y(~tst_set,:), reg_opts);
     hol_mses(si,:) = rreg.cv.lam_mse;
     [mv,mi] = min(rreg.cv.lam_mse);
     if mv<min_mse
