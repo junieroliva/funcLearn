@@ -4,6 +4,6 @@ Finv = nan(size(x));
 for i=1:d
     cdf = cdfv(:,i);
     [~,IA] = unique(cdf);
-    Finv(:,d) = interp1(cdf(IA), xgrid(IA), x(:,d), 'linear', 0);
+    Finv(:,i) = interp1(cdf(IA), xgrid(IA), x(:,i), 'linear', 0);
 end
 end
