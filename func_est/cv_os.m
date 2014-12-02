@@ -17,14 +17,15 @@ last_norms = [norms(1:end-1)~=norms(2:end); true];
 lis = find(last_norms);
 
 nlis = length(lis);
-ropts.cv = 'loocv';
+ropts.cv = 'loo';
 ropts.lambdars = 0;
 mses = nan(nlis,1);
 for i=1:nlis % TODO: make faster with block inversion
     rreg = ridge_reg(phix(:,1:lis(i)),y,ropts);
     mses(i) = rreg.cv.lam_mse(1);
 end
-[~,i] = min(mses);
+
+[~,li] = min(mses);
 if nargout==4
     [rreg, Yhat, SM] = ridge_reg(phix(:,1:lis(li)),y,ropts); 
 else
