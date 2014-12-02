@@ -14,6 +14,7 @@ end
 rreg.cv.lambdars = lambdars;
 eigen_decomp = get_opt(opts,'eigen_decomp',true);
 verbose = get_opt(opts, 'verbose', false);
+eval_beta = get_opt(opts, 'eval_beta', true);
 
 [n,~] = size(X);
 nlams = length(lambdars);
@@ -61,7 +62,9 @@ if verbose
     fprintf('\tlam_i: (%i,%f), {%f}\n', li, lambdars(li), min(lam_mse(:)) );
 end
 
-beta = rreg_beta(rstats, lambdars(li));
+if eval_beta
+    beta = rreg_beta(rstats, lambdars(li));
+end
 Yhat = X*beta;
 rreg.lambda = lambdars(li);
 rreg.beta = beta;
