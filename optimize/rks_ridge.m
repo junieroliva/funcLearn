@@ -86,7 +86,7 @@ rks.W = W;
 rks.b = b;
 
 % cross-validate bandwitdth/lambda using kitchen sinks
-reg_opts = get_opt(opts, 'ridge_opts', struct);
+reg_opts = get_opt(opts, 'reg_opts', struct);
 reg_opts.lambdars = lambdas;
 reg_opts.cv = 'hold';
 reg_opts.trn_set = trn_set(~tst_set);
