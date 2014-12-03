@@ -25,7 +25,9 @@ if isempty(varargin)
 else
     opts = varargin{1};
 end
+
 verbose = get_opt(opts,'verbose',false);
+reg_func = get_opt(opts,'reg_func',@ridge_reg);
 
 % get training/hold-out/testing sets
 [N,di] = size(X);
@@ -84,11 +86,12 @@ rks.W = W;
 rks.b = b;
 
 % cross-validate bandwitdth/lambda using kitchen sinks
-ridge_opts = get_opt(opts, 'ridge_opts', struct);
-ridge_opts.lambdars = lambdas;
-ridge_opts.cv = 'hold';
-ridge_opts.trn_set = trn_set(~tst_set);
-ridge_opts.eigen_decomp = get_opt(ridge_opts,'eigen_decomp', false);
+reg_opts = get_opt(opts, 'ridge_opts', struct);
+reg_opts.lambdars = lambdas;
+reg_opts.cv = 'hold';
+reg_opts.trn_set = trn_set(~tst_set);
+reg_opts.eigen_decomp = get_opt(reg_opts,'eigen_decomp', false);
+
 stime = tic;
 nsigma2s = length(sigma2s);
 eyeD = speye(D);
@@ -102,7 +105,7 @@ for si = 1:nsigma2s
     % features
     Phi = sqrt(2/D)*cos(bsxfun(@plus,sqrt(1/sigma2)*XW(~tst_set,:),b));
     % regress based on random features
-    rreg = ridge_reg(Phi, Y(~tst_set,:), ridge_opts);
+    rreg = reg_func(Phi, Y(~tst_set,:), reg_opts);
     hol_mses(si,:) = rreg.cv.lam_mse;
     [mv,mi] = min(rreg.cv.lam_mse);
     if mv<min_mse
