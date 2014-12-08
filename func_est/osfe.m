@@ -1,5 +1,5 @@
 function [pcs, inds, PM] = osfe(x, y, varargin)
-[N,n,p] = size(y);
+[N,~,p] = size(y);
 y = permute(y,[2 3 1]);
 d = size(x,2);
 
@@ -34,8 +34,15 @@ if ~iscell(x)
 
     end
     pcs = reshape(pcs,[],N)';
-else % TODO: implement
-    
+else
+    [cN,p] = size(x);
+    pcs = cell(cN,p);
+    for i=1:cN
+        for j=1:p
+            pcs{i,j} = osfe(x{i,j}, y{i,j}, opts);
+        end
+    end
+    pcs = cell2mat(pcs);
 end
 
 
