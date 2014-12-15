@@ -39,7 +39,7 @@ if iscell(x) % bulk mode, cv sigma2 on a subset if needed
             param = kde_gauss(x{i}, opts);
             sigma2s(ii) = param.sigma2;
         end
-        sigma2 = mean(sigma2s);
+        sigma2 = min(median(sigma2s),mean(sigma2s));
     end
     opts.sigma2 = sigma2;
     kde(N).sigma2 = [];
