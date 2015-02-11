@@ -76,6 +76,15 @@ else
         sumphi2 = cumsum(sum( phix.^2 ));
         lastnorms = [norms(1:end-1)~=norms(2:end); true];
         scores = (1-2*n/(n-1))*sumnorms2(lastnorms) + (2/(n*(n-1)))*sumphi2(lastnorms);
+        if get_opt(opts,'test',false)
+            ntrials = get_opt(opts,'ntrials',10);
+            for trl=1:ntrials
+                lni = find(lastnorms);
+                ri = randi(length(lni));
+                [same, loo_score] = test_score(inds(1:lni(ri),:), scores(ri));
+                assert(same);
+            end
+        end
         [~, tm] = min(scores);
         cv.lastnorms = lastnorms;
         cv.scores = scores;
@@ -113,6 +122,22 @@ else
     end
     
 end
+
+    function [same, loo_score] = test_score(inds, score)
+        tol = 1E-10;
+        % get density pcs
+        s_phix = eval_basis(x, inds);
+        s_pc = mean(s_phix);
+        % get the loo densities
+        p_loo = nan(n,1);
+        for li=1:n
+            %loo_pc = mean( s_phix([1:li-1, li+1:n],:) );
+            loo_pc = (n*s_pc-s_phix(li,:))/(n-1);
+            p_loo(li) = s_phix(li,:)*loo_pc';
+        end
+        loo_score = sum(s_pc.^2) - 2*mean(p_loo);
+        same = abs(loo_score-score)<tol;
+    end
 
 end
 
