@@ -97,7 +97,17 @@ else
         kde.cv = cv;
     end
     if ~isempty(xe)
-        p = exp(-slmetric_pw(xe',x','sqdist')/(2*sigma2))*norma;
+        D = n;
+        maxmem = get_opt(opts,'maxmem',2^30); % use no more than this to eval
+        nstep = ceil(maxmem/(8*D));
+        ne = size(xe,1);
+        p = nan(ne,1);
+        for ci = 1:ceil(ne/nstep)
+            n1 = (ci-1)*nstep+1;
+            n2 = min(ne,ci*nstep);
+            p(n1:n2) = exp(-slmetric_pw(xe(n1:n2,:)',x','sqdist')/(2*sigma2))*norma;
+        end
+        
         mp = min(p(p>eps));
         if ~isempty(mp)
             p(p<=eps) = mp;

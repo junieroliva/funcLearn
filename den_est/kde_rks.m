@@ -81,7 +81,7 @@ else
 
     if ~isempty(xe)
         D = size(rks.W,2);
-        maxmem = get_opt(opts,'maxmem',2^31); % use no more than this to eval
+        maxmem = get_opt(opts,'maxmem',2^30); % use no more than this to eval
         nstep = ceil(maxmem/(8*D));
         ne = size(xe,1);
         p = nan(ne,1);

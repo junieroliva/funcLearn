@@ -108,6 +108,7 @@ else
         cv.lastnorms = lastnorms;
         cv.scores = scores;
         % get the norms less than the CVed value
+        lastnorms_i = find(lastnorms);
         osp.inds = inds(norms<=norm_vals(tm),:);
         osp.pc = pc(norms<=norm_vals(tm))';
     else
