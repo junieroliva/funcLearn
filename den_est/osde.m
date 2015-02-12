@@ -70,22 +70,41 @@ else
         %phix = evalbasis(x, inds+1);
         phix = eval_basis(x, inds);
         pc = mean(phix);
-        % CV norm of indices with L2 score
+        % get norms of basis indices
         norm_vals = unique(norms);
         sumnorms2 = cumsum(pc.^2);
         sumphi2 = cumsum(sum( phix.^2 ));
         lastnorms = [norms(1:end-1)~=norms(2:end); true];
-        scores = (1-2*n/(n-1))*sumnorms2(lastnorms) + (2/(n*(n-1)))*sumphi2(lastnorms);
-        if get_opt(opts,'test',false)
-            ntrials = get_opt(opts,'ntrials',10);
-            for trl=1:ntrials
-                lni = find(lastnorms);
-                ri = randi(length(lni));
-                [same, loo_score] = test_score(inds(1:lni(ri),:), scores(ri));
-                assert(same);
+        if get_opt(opts,'do_CVL2',true)
+            % CV norm of indices with L2 score
+            
+            scores = (1-2*n/(n-1))*sumnorms2(lastnorms) + (2/(n*(n-1)))*sumphi2(lastnorms);
+            if get_opt(opts,'test',false)
+                ntrials = get_opt(opts,'ntrials',10);
+                for trl=1:ntrials
+                    lni = find(lastnorms);
+                    ri = randi(length(lni));
+                    [same, loo_score] = test_score(inds(1:lni(ri),:), scores(ri));
+                    assert(same);
+                end
             end
+            [~, tm] = min(scores);
+            
+        else
+            % CV with LOOLL
+            minp = get_opt(opts,'minp',1E-4);
+            looll = nan(n,sum(lastnorms));
+            for i=1:n
+                lio_pc = (n*pc-phix(i,:))/(n-1);
+                lio_ll = cumsum(phix(i,:).*lio_pc);
+                lio_ll = lio_ll(lastnorms);
+                lio_ll(lio_ll<minp) = minp;
+                looll(i,:) = log(lio_ll);
+            end
+            scores = sum(looll);
+            [~, tm] = max(scores);
+            
         end
-        [~, tm] = min(scores);
         cv.lastnorms = lastnorms;
         cv.scores = scores;
         % get the norms less than the CVed value
