@@ -1,4 +1,4 @@
-function [pcs, inds, PM] = osfe(x, y, varargin)
+function [pcs, inds, PM, yhat] = osfe(x, y, varargin)
 [N,~,p] = size(y);
 y = permute(y,[2 3 1]);
 d = size(x,2);
@@ -33,10 +33,15 @@ if ~iscell(x)
 
     if exist('mtimesx', 'file')
         pcs = mtimesx(PM,y);
+        if nargout>=4
+            yhat = mtimesx(phix,pcs);
+            yhat = permute(yhat,[3 1 2]);
+        end
     else % TODO: implement
-
+        error('Need mtimesx package');
     end
     pcs = reshape(pcs,[],N)';
+    
 else
     [cN,p] = size(x);
     pcs = cell(cN,p);
