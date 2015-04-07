@@ -3,7 +3,7 @@ function [rks, p] = kde_rks( x, varargin )
 if ~isempty(varargin) && ~isstruct(varargin{1})
     xe = varargin{1};
 else
-    xe = x;
+    xe = [];
 end
 if ~isempty(varargin) && isstruct(varargin{1})
     opts = varargin{1};
@@ -34,11 +34,11 @@ if iscell(x) % bulk mode, cv sigma2 on a subset if needed
     % get the random features (basis functions)
     rks.sigma2 = sigma2;
     rks.D = get_opt(rks, 'D', 1000);
-    rks.W = sqrt(1./rks.sigma2)*randn(d,rks.D);
+    rks.W = randn(d,rks.D);
     rks.b = 2*pi*rand(1,rks.D);
     % compute the "projection coefficients"
     opts.rks = rks;
-    pc = nan(N,D);
+    pc = nan(N,rks.D);
     if ~isempty(xe)
         p = cell(N,1);
         for i=1:N
@@ -53,29 +53,44 @@ if iscell(x) % bulk mode, cv sigma2 on a subset if needed
     end
     rks.pc = pc;
 else
-    [~,d] = size(x);
+    [n,d] = size(x);
     rks = get_opt(opts, 'rks', struct);
+    do_norma = get_opt(opts, 'do_norma', true);
     
     % check if we don't have all parameters neccesary for density estimation
     if ~isfield(rks,'pc') || ~isfield(rks,'W') || ~isfield(rks,'b') 
         rks.trunc = get_opt(rks, 'trunc', true);
         % check if we only need to compute projection coefficients
         if isfield(rks,'W') && isfield(rks,'b') && isfield(rks,'sigma2')
-            rks.pc = sqrt(2/size(rks.W,2))*cos(bsxfun(@plus,x*rks.W,rks.b))...
-                        *gauss_norma(x,rks.sigma2,rks.trunc);
+            if do_norma
+                rks.norma = gauss_norma(x,rks.sigma2,rks.trunc);
+            else
+                rks.norma = ones(n,1)/n;
+            end
+            rks.pc = rks.norma'*sqrt(2/size(rks.W,2))*...
+                        cos(bsxfun(@plus,x*rks.W/sqrt(rks.sigma2),rks.b));
         else % need to compute everything
             if ~isfield(rks,'sigma2')
                 kde = kde_gauss( x, rks );
                 rks.sigma2 = kde.sigma2;
-                rks.norma = kde.norma;
+                if do_norma
+                    rks.norma = kde.norma;
+                else
+                    rks.norma = ones(n,1)/n;
+                end
             else
-                rks.norma = gauss_norma(x,rks.sigma2,rks.trunc);
+                if do_norma
+                    rks.norma = gauss_norma(x,rks.sigma2,rks.trunc);
+                else
+                    rks.norma = ones(n,1)/n;
+                end
             end
             
             rks.D = get_opt(rks, 'D', 1000);
             rks.W = sqrt(1./rks.sigma2)*randn(d,rks.D);
             rks.b = 2*pi*rand(1,rks.D);
-            rks.pc = (rks.norma'*sqrt(2/rks.D)*cos(bsxfun(@plus,x*rks.W,rks.b)))';
+            rks.pc = (rks.norma'*sqrt(2/rks.D)*...
+                        cos(bsxfun(@plus,x*rks.W/sqrt(rks.sigma2),rks.b)))';
         end
     end
 
@@ -88,7 +103,7 @@ else
         for ci = 1:ceil(ne/nstep)
             n1 = (ci-1)*nstep+1;
             n2 = min(ne,ci*nstep);
-            p(n1:n2) = sqrt(2/D)*cos(bsxfun(@plus,xe(n1:n2,:)*rks.W,rks.b))*rks.pc;
+            p(n1:n2) = sqrt(2/D)*cos(bsxfun(@plus,xe(n1:n2,:)*rks.W/sqrt(rks.sigma2),rks.b))*rks.pc;
         end
         p(p<=eps) = min(p(p>eps));
     end

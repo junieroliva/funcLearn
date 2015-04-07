@@ -154,6 +154,7 @@ if any(tst_set)
     tst_mse = mean( sum( (Y(tst_set,:)-pred_projs).^2, 2 ) );
     tst_stats.mse = tst_mse;
     tst_stats.mean_pred_mse = mean_pred_mse;
+    tst_stats.tst_set = tst_set;
     if verbose
         fprintf('TEST: bw = %g, lambda = %g, score: %g, mean_pred score: %g (CVed in %g secs)\n',sigma2, lambda, tst_mse, mean_pred_mse, toc(stime));
     end

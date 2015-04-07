@@ -113,12 +113,15 @@ else
             end
         end
         
-        mp = min(p(p>eps));
-        if ~isempty(mp)
-            p(p<=eps) = mp;
-        else
-            p(p<=eps) = eps;
-        end
+%         mp = min(p(p>eps));
+%         if ~isempty(mp)
+%             p(p<=eps) = mp;
+%         else
+%             p(p<=eps) = eps;
+%         end
+        
+        trunc_val = get_opt(opts,'trunc_val',eps);
+        p = trunc_density(p,trunc_val);
     end
 end
 
