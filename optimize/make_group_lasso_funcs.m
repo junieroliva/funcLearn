@@ -12,19 +12,20 @@ intercept = get_opt(params,'intercept',false);
 lambda1 = get_opt(params,'lambda1',0);
 lambda2 = get_opt(params,'lambda2',0);
 lambdae = get_opt(params,'lambdae',0);
-ginds = get_opt(params,'ginds');
+ginds = get_opt(params,'ginds'); % indices for last member of each group
 gsize = nan;
 grep = [];
 gmult = [];
 if isempty(ginds)
     gsize = get_opt(params,'gsize',1);
 else
+    ginds = ginds(:);
     grep = zeros(ginds(end),1);
     grep(ginds) = 1;
     grep = cumsum(grep);
-    grep(ginds) = grep(ginds-1);
+    grep(ginds) = grep(ginds)-1;
     grep = grep+1;
-    gmult = get_opt(params,'gmult',ones(ginds(end),1));
+    gmult = get_opt( params, 'gmult', sqrt(ginds-[0; ginds(2:end)]) );
 end
 % Group lasso functions
 function o = obj(x)
@@ -39,7 +40,7 @@ function o = obj(x)
         if lambda2>0
             if isnan(gsize)
                 r = cumsum(x(:).^2);
-                o = o + lambda2.*gmult'*sqrt(r(ginds)-[0; r(ginds(1:end-1))]);
+                o = o + lambda2*dot(gmult,sqrt(r(ginds)-[0; r(ginds(1:end-1))]));
             else
                 o = o + lambda2*sum(sqrt(sum(reshape(x,gsize,[]).^2,1)));
             end

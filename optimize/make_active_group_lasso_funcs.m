@@ -54,7 +54,9 @@ function screen = get_screen(x, params, varargin)
     K = params.K;
     lambdae = params.lambdae;
     lambda1 = params.lambda1;
-    gsize = params.gsize;
+    gsize = get_opts(params,'gsize',nan);
+    ginds = get_opt(params,'ginds');
+    gmult = get_opt(params,'gmult');
     intercept = get_opt(params,'intercept',false);
     
     if ~isempty(varargin)
@@ -77,11 +79,14 @@ function screen = get_screen(x, params, varargin)
         y_s = sign(y_s).*max(0,abs(y_s)-lambda1);
     end
     
-%     if isnan(gsize)
-%         screen = cumsum(y_s(:).^2);
-%         screen = sqrt(screen(ginds)-[0; screen(ginds(1:end-1))]);
-    y_s = reshape(y_s,gsize,[]);
-    screen = sqrt(sum(y_s.^2,1));
+    if isnan(gsize)
+        screen = cumsum(y_s(:).^2);
+        screen = sqrt(screen(ginds)-[0; screen(ginds(1:end-1))]);
+        screen = screen./gmult;
+    else
+        y_s = reshape(y_s,gsize,[]);
+        screen = sqrt(sum(y_s.^2,1));
+    end
 end
 
 function viol = viol_kkt(x_curr,params,active,checklist)
