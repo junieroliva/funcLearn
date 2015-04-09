@@ -1,4 +1,4 @@
-function [ Y_pred, sqerr, norms, outfolds, lambdar, lambdars ] = cv_rdg_mse_FuSSO( Y, PC, p, varargin )
+function [ Y_pred, sqerr, norms, outfolds, lambdar, lambdars ] = cv_rdg_mse( Y, PC, p, varargin )
 %cv_mse_FuSSO Summary of this function goes here
 %   Detailed explanation goes here
 if isempty(varargin)
@@ -15,7 +15,7 @@ opts.intercept = intercept;
 lambdars = get_opt(opts,'lambdars',2.^(20:-1:-20));
 opts.lambdars = lambdars;
 ninfolds = get_opt(opts,'ninfolds',5);
-noutfolds = get_opt(opts,'noutfolds',N);
+noutfolds = get_opt(opts,'noutfolds',10);
 
 cY_pred = cell(N,1);
 csqerr = cell(N,1);
@@ -23,7 +23,7 @@ norms = nan(noutfolds,p);
 lambdar = nan(noutfolds,1);
 outfolds = crossvalind('Kfold', N, noutfolds);
 stime = tic;
-for i = 1:noutfolds
+parfor i = 1:noutfolds
     topts = opts;
     trn_set = true(N,1);
     trn_set(outfolds==i) = false;
@@ -36,7 +36,7 @@ for i = 1:noutfolds
             fprintf('*** [i: %i] trial: %i elapsed:%f \n', i, trl, toc(stime));
         end
         topts.trn_set = infolds~=trl;
-        [cv_lambdar(trl), ~, cv_MSE(trl), cv_MSEs(trl,:)] = cv_rdg_lam_FuSSO( Y(trn_set), PC(trn_set,:), topts );
+        [cv_lambdar(trl), ~, cv_MSE(trl), cv_MSEs(trl,:)] = cv_rdg_lam( Y(trn_set), PC(trn_set,:), topts );
     end
     lambdar(i) = mean(cv_lambdar);
 

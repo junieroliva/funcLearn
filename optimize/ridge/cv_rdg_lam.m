@@ -1,4 +1,4 @@
-function [ lambdar, lambdars, MSE, hol_MSEs, beta ] = cv_rdg_lam_FuSSO( Y, PC, varargin )
+function [ lambdar, lambdars, MSE, hol_MSEs, beta ] = cv_rdg_lam( Y, PC, varargin )
 %cv_supp_FuSSO Summary of this function goes here
 %   Detailed explanation goes here
 if isempty(varargin)
