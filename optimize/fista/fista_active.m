@@ -2,7 +2,7 @@ function [x, screen, strong_lambdas, obj] = fista_active( x_0, funcs, lambda_pre
 % set options
 x_curr = x_0;
 if isempty(varargin)
-    opts = struc;
+    opts = struct;
 else
     opts = varargin{1};
 end
@@ -22,15 +22,19 @@ while first_opt || any(viol)
     if sum(active_inds)>0
         [x_curr(active_inds),obj] = fista(x_curr(active_inds), act_funcs, opts);
     else
-        obj = sum(params.Y.^2)/2;
+        if get_opt(params,'intercept',false)
+             obj = sum((params.Y-mean(params.Y)).^2)/2;
+        else
+            obj = sum(params.Y.^2)/2; % TODO: need to consider intercept case?
+        end
     end
     % check for kkt violators in covariates that did not pass strong rule
-    checklist = ~active & ~srule;
+    checklist = ~active(:) & ~srule(:);
     if any(checklist)
         viol(checklist) = funcs.viol_kkt(x_curr,params,active,checklist);
     end
     % check for kkt violators in covariates that passed strong rule
-    checklist = ~active & srule;
+    checklist = ~active(:) & srule(:);
     if ~any(viol) && any(checklist)
         viol(checklist) = funcs.viol_kkt(x_curr,params,active,checklist);
     end

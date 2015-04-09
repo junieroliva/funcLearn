@@ -1,40 +1,63 @@
 function [ Y_pred, sqerr, active, betas, outfolds, ...
     lambda, lambdae, lambdar, lambdas, lambdaes, lambdars ] = ...
-    cv_mse_FuSSO( Y, PC, p, varargin )
-%cv_mse_FuSSO Summary of this function goes here
-%   Detailed explanation goes here
+    cv_mse_grplasso( Y, K, g, varargin )
+% Cross-validate (with inner and outer loops) the MSE of a group lasso
+% problem with response Y and covariate matrix K while chosing lambdas.
+%   Inputs - 
+%   Outputs -
 if isempty(varargin)
     opts = struct;
 else
     opts = varargin{1};
 end
-N = size(PC,1);
-M_n = size(PC,2)/p;
+N = size(K,1);
+
+% set up groups
+if length(g)==1
+    if mod(size(K,2),g)~=0
+        error('#covariates not disvisible by #groups indicated.');
+    end
+    gsize = size(K,2)/g;
+    ginds = [];
+    gmult = [];
+    p = g;
+else
+    gsize = nan;
+    ginds = g;
+    gmult = get_opt( opts, 'gmult', sqrt(ginds-[0; ginds(1:end-1)]) );
+    p = length(g);
+end
+
+% options
 verbose = get_opt(opts,'verbose',false);
-% get lambdas
 intercept = get_opt(opts,'intercept',true);
 opts.intercept = intercept;
+params.intercept = intercept;
+params.gsize = gsize;
+params.ginds = ginds;
+params.gmult = gmult;
+
+% get randge of lambdas
 lambdas = get_opt(opts,'lambdas',[]);
 if isempty(lambdas)
-    nlambdas = get_opt(opts,'nlambdas',100);
-    min_lambda_ratio = get_opt(opts,'min_lambda_ratio',1E-2);
-    if intercept
-        Y_0 = Y-mean(Y);
-    else
-        Y_0 = Y;
-    end
-    max_lambda = max(sqrt(sum(reshape(PC'*Y_0,M_n,[]).^2,1)));
-    b = max_lambda*min_lambda_ratio;
-    B = max_lambda;
-    lambdas = b*((B/b).^([(nlambdas-1):-1:0]/(nlambdas-1)));
-    opts.lambdas = lambdas;
+    groups.gsize = gsize;
+    groups.ginds = ginds;
+    groups.gmult = gmult;
+    lambdas = get_lambda_range(Y, K, groups, opts);
 end
+opts.lambdas = lambdas;
+
+% ridge lambdas and elastic-net lambda
 lambdars = get_opt(opts,'lambdars',2.^(20:-1:-20));
 opts.lambdars = lambdars;
 lambdaes = get_opt(opts,'lambdaes',[0 4.^(1:2)]);
 opts.lambdaes = lambdaes;
+
+% folds
 ninfolds = get_opt(opts,'ninfolds',5);
 noutfolds = get_opt(opts,'noutfolds',N);
+
+funcs = make_active_group_lasso_funcs();
 
 cY_pred = cell(noutfolds,1);
 csqerr = cell(noutfolds,1);
@@ -58,7 +81,7 @@ parfor i = 1:noutfolds
             fprintf('*** [i: %i] trial: %i elapsed:%f \n', i, trl, toc(stime));
         end
         topts.trn_set = infolds~=trl;
-        [ ~, ~, cv_lambda(trl), cv_lambdae(trl), cv_lambdar(trl) ] = cv_supp_FuSSO( Y(trn_set), PC(trn_set,:), p, topts );
+        [ ~, ~, cv_lambda(trl), cv_lambdae(trl), cv_lambdar(trl) ] = cv_supp_grplasso( Y(trn_set), K(trn_set,:), g, topts );
     end
     lambdae(i) = mean(cv_lambdae);
     lambdar(i) = mean(cv_lambdar);
@@ -67,28 +90,29 @@ parfor i = 1:noutfolds
     topts = opts;
     topts.lambdas = lambdas(1:li);
     topts.lambdae = lambdae(i);
-    [~,norms] = eval_FuSSO( Y(trn_set), PC(trn_set,:), p, topts );
-    active(i,:) = norms(end,:)>0;
-    supp = repmat(active(i,:),M_n,1);
+    [~,gnorms] = eval_grplasso( Y(trn_set), K(trn_set,:), g, topts );
+    
+    active(i,:) = gnorms(end,:)>0;
+    [~, supp] = funcs.get_active_inds(active(i,:),params);
     supp = supp(:)>0;
     
     nactive = sum(active(i,:));
     if nactive>0
         if intercept
-            PC_act = [PC(trn_set,supp) ones(sum(trn_set),1)];
+            K_act = [K(trn_set,supp) ones(sum(trn_set),1)];
         else
-            PC_act = PC(trn_set,supp);
+            K_act = K(trn_set,supp);
         end
-        [U,S] = eig(PC_act*PC_act');
+        [U,S] = eig(K_act*K_act');
         S = diag(S);
-        PCtU = PC_act'*U;
-        PCtY = PC_act'*Y(trn_set);
-        UtPCPCtY = PCtU'*PCtY;
-        beta_act = (1/lambdar(i))*(PCtY-PCtU*(UtPCPCtY./(S+lambdar(i))));
+        KtU = K_act'*U;
+        KtY = K_act'*Y(trn_set);
+        UtKKtY = KtU'*KtY;
+        beta_act = (1/lambdar(i))*(KtY-KtU*(UtKKtY./(S+lambdar(i))));
         if intercept
-            cY_pred{i} = PC(~trn_set,supp)*beta_act(1:end-1)+beta_act(end);
+            cY_pred{i} = K(~trn_set,supp)*beta_act(1:end-1)+beta_act(end);
         else
-            cY_pred{i} = PC(~trn_set,supp)*beta_act;
+            cY_pred{i} = K(~trn_set,supp)*beta_act;
         end
         betas{i} = beta_act;
     else

@@ -152,6 +152,7 @@ if any(tst_set)
     % errors
     mean_pred_mse = mean( sum( bsxfun(@minus,Y(tst_set,:),mean(Y(tst_set,:))).^2, 2 ) );
     tst_mse = mean( sum( (Y(tst_set,:)-pred_projs).^2, 2 ) );
+    tst_stats.pred = pred_projs;
     tst_stats.mse = tst_mse;
     tst_stats.mean_pred_mse = mean_pred_mse;
     tst_stats.tst_set = tst_set;

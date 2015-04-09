@@ -1,38 +1,53 @@
 function [ active, supp, lambda, lambdae, lambdar, lambdas, lambdaes, lambdars ] = ...
-    cv_supp_FuSSO( Y, PC, p, varargin )
-%cv_supp_FuSSO Summary of this function goes here
-%   Detailed explanation goes here
+    cv_supp_grplasso( Y, K, g, varargin )
+% Cross-validate the support of a group lasso problem with response Y and 
+% covariate matrix K while chosing lambdas.
+%   Inputs - 
+%   Outputs -
 if isempty(varargin)
     opts = struct;
 else
     opts = varargin{1};
 end
-N = size(PC,1);
-M_n = size(PC,2)/p;
-verbose = get_opt(opts,'verbose',false);
-% get lambdas
-intercept = get_opt(opts,'intercept',true);
+N = size(K,1);
+
+% set up groups
+if length(g)==1
+    if mod(size(K,2),g)~=0
+        error('#covariates not disvisible by #groups indicated.');
+    end
+    gsize = size(K,2)/g;
+    ginds = [];
+    gmult = [];
+    p = g;
+else
+    gsize = nan;
+    ginds = g;
+    gmult = get_opt( opts, 'gmult', sqrt(ginds-[0; ginds(1:end-1)]) );
+    p = length(g);
+end
+
+% get randge of lambdas
 lambdas = get_opt(opts,'lambdas',[]);
 if isempty(lambdas)
-    nlambdas = get_opt(opts,'nlambdas',100);
-    min_lambda_ratio = get_opt(opts,'min_lambda_ratio',1E-2);
-    if intercept
-        Y_0 = Y-mean(Y);
-    else
-        Y_0 = Y;
-    end
-    max_lambda = max(sqrt(sum(reshape(PC'*Y_0,M_n,[]).^2,1)));
-    b = max_lambda*min_lambda_ratio;
-    B = max_lambda;
-    lambdas = b*((B/b).^([(nlambdas-1):-1:0]/(nlambdas-1)));
-else
-    nlambdas = length(lambdas);
+    groups.gsize = gsize;
+    groups.ginds = ginds;
+    groups.gmult = gmult;
+    lambdas = get_lambda_range(Y, K, groups, opts);
 end
+nlambdas = length(lambdas);
+
+% options
+verbose = get_opt(opts,'verbose',false);
+intercept = get_opt(opts,'intercept',true);
 maxactive = get_opt(opts,'maxactive',inf);
+
+% ridge lambdas and elastic-net lambda
 lambdars = get_opt(opts,'lambdars',10.^(15:-1:-15));
 nlambdars = length(lambdars);
 lambdaes = get_opt(opts,'lambdaes',[0 4.^(1:2)]);
 nlambdaes = length(lambdaes);
+
 % get training/hold-out sets
 trn_set = get_opt(opts,'trn_set',[]);
 if isempty(trn_set)
@@ -42,24 +57,26 @@ if isempty(trn_set)
 end
 N_trn = sum(trn_set);
 N_hol = sum(~trn_set);
-PC_hol = PC(~trn_set,:);
+K_hol = K(~trn_set,:);
 Y_hol = Y(~trn_set);
-PC = PC(trn_set,:);
+K = K(trn_set,:);
 Y = Y(trn_set);
 
 % set opti params
 cv_opts = struct;
-cv_opts.maxIter = 50000;
-cv_opts.epsilon = 1E-10;
+cv_opts.maxIter = get_opt(opts,'maxIter',50000);
+cv_opts.epsilon = get_opt(opts,'epsilon',1E-10);
 cv_opts.accel = true;
 cv_opts.verbose = false;
 
 funcs = make_active_group_lasso_funcs();
 screen = inf(p,1);
 strong_lambdas = inf(p,1);
-params.K = PC;
+params.K = K;
 params.Y = Y;
-params.gsize = M_n;
+params.gsize = gsize;
+params.ginds = ginds;
+params.gmult = gmult;
 params.lambda1 = 0;
 params.intercept = intercept;
 
@@ -72,19 +89,19 @@ best_lambdae = nan;
 stime = tic;
 for le = 1:nlambdaes
     params.lambdae = lambdaes(le);
-    tt_a = zeros(size(PC,2)+intercept,1);
+    beta = zeros(size(K,2)+intercept,1);
     for l = 1:nlambdas
         params.lambda2 = lambdas(l);
 
-        [tt_a,screen,strong_lambdas] = fista_active(tt_a, funcs, lambdas(max(l-1,1)), lambdas(l), strong_lambdas, screen, params, cv_opts);
+        [beta,screen,strong_lambdas] = fista_active(beta, funcs, lambdas(max(l-1,1)), lambdas(l), strong_lambdas, screen, params, cv_opts);
         if intercept
-            tt_norms = sqrt(sum(reshape(tt_a(1:end-1),M_n,[]).^2,1));
+            g_norms = group_norms(beta(1:end-1),gsize,ginds);
         else
-            tt_norms = sqrt(sum(reshape(tt_a,M_n,[]).^2,1));
+            g_norms = group_norms(beta,gsize,ginds);
         end
-        gactive = tt_norms>0;
+        gactive = g_norms>0;
         nactive = sum(gactive);
-        active = repmat(gactive,M_n,1);
+        [~, active] = funcs.get_active_inds(gactive,params);
         active = active(:);
 
         % get ridge estimates using found support -- fast for fat matrices
@@ -92,23 +109,23 @@ for le = 1:nlambdaes
         best_lambdar_r = nan;
         if nactive>0
             if intercept
-                PC_act = [PC(:,active) ones(N_trn,1)];
-                PC_hol_act = [PC_hol(:,active) ones(N_hol,1)];
+                K_act = [K(:,active) ones(N_trn,1)];
+                K_hol_act = [K_hol(:,active) ones(N_hol,1)];
             else
-                PC_act = PC(:,active);
-                PC_hol_act = PC_hol(:,active);
+                K_act = K(:,active);
+                K_hol_act = K_hol(:,active);
             end
-            [U,S] = eig(PC_act*PC_act');
+            [U,S] = eig(K_act*K_act');
             S = diag(S);
-            PCtU = PC_act'*U;
-            PCtY = PC_act'*Y;
-            UtPCPCtY = PCtU'*PCtY;
+            KtU = K_act'*U;
+            KtY = K_act'*Y;
+            UtKKtY = KtU'*KtY;
             hol_MSEs = nan(nlambdars,1);
             for lr=1:nlambdars
                 lambdar = lambdars(lr);
                 %beta_act = (1/lambdar)*(Ig-PC_act'*U*diag(1./(S+lambdar))*U'*PC_act)*(PC_act'*Y);
-                beta_act = (1/lambdar)*(PCtY-PCtU*(UtPCPCtY./(S+lambdar)));
-                hol_MSE = mean( (Y_hol-PC_hol_act*beta_act).^2 );
+                beta_act = (1/lambdar)*(KtY-KtU*(UtKKtY./(S+lambdar)));
+                hol_MSE = mean( (Y_hol-K_hol_act*beta_act).^2 );
                 hol_MSEs(lr) = hol_MSE;
                 if hol_MSE<best_hol_MSE_r
                     best_hol_MSE_r = hol_MSE;
@@ -125,7 +142,7 @@ for le = 1:nlambdaes
             end
         else
             if intercept
-                best_hol_MSE_r = mean((Y_hol-tt_a(end)).^2);
+                best_hol_MSE_r = mean((Y_hol-beta(end)).^2);
             else
                 best_hol_MSE_r = mean(Y_hol.^2);
             end

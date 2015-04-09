@@ -11,16 +11,30 @@ function [act_funcs, active_inds] = make_active_funcs(active,params)
     [active_inds, K_active_inds] = get_active_inds(active,params);
     act_params = params;
     act_params.K = params.K(:,K_active_inds);
+    ginds = get_opt(params,'ginds');
+    gmult = get_opt(params,'gmult');
+    if ~isempty(ginds);
+        act_params.ginds = get_active_ginds(ginds,K_active_inds);
+        act_params.gmult = gmult(active);
+    end
+    
     act_funcs = make_group_lasso_funcs(act_params);
+    
 end
 
 function [srule, screen, strong_lambdas] = strong_rule(params,x_prev,lambda_prev,lambda,strong_lambdas,screen)
+    ginds = get_opt(params,'ginds');
+    gmult = get_opt(params,'gmult');
     srule = screen<2*lambda-strong_lambdas;
     update = ~srule & strong_lambdas~=lambda_prev;
     if any(update) 
         [x_update_inds, K_update_inds] = get_active_inds(update,params);
         up_params = params;
         up_params.K = params.K(:,K_update_inds);
+        if ~isempty(ginds);
+            up_params.ginds = get_active_ginds(ginds,K_update_inds);
+            up_params.gmult = gmult(update);
+        end
         screen(update) = get_screen(x_prev(x_update_inds), up_params);
         strong_lambdas(update) = lambda_prev;
         srule(update) = screen(update)<2*lambda-strong_lambdas(update);
@@ -29,11 +43,22 @@ end
 
 function [x_active_inds, K_active_inds] = get_active_inds(active,params)
     intercept = get_opt(params,'intercept',false);
-    gsize = params.gsize;
-    K_active_inds = repmat(active(:)',gsize,1);
-    K_active_inds = K_active_inds(:);
+    gsize = get_opt(params,'gsize',nan);
+    ginds = get_opt(params,'ginds');
+    
+    if ~isempty(ginds)
+        gids = zeros(ginds(end),1);
+        gids(ginds) = 1;
+        gids = cumsum(gids);
+        gids(ginds) = gids(ginds)-1;
+        gids = gids+1;
+        K_active_inds = active(gids);
+    else
+        K_active_inds = repmat(active(:)',gsize,1);
+        K_active_inds = K_active_inds(:);
+    end
     if intercept
-        x_active_inds = [K_active_inds; true];
+        x_active_inds = [K_active_inds(:); true];
     else
         x_active_inds = K_active_inds;
     end
@@ -41,12 +66,10 @@ end
 
 function active_set = get_active_set(x_curr,params)
     intercept = get_opt(params,'intercept',false);
-    gsize = params.gsize;
     if intercept
         x_curr = x_curr(1:end-1);
     end
-    active_set = reshape(x_curr,gsize,[]);
-    active_set = (sum(active_set.^2,1)>0)';
+    active_set = (group_norms2(x_curr,params)>0)';
 end
 
 function screen = get_screen(x, params, varargin)
@@ -54,7 +77,7 @@ function screen = get_screen(x, params, varargin)
     K = params.K;
     lambdae = params.lambdae;
     lambda1 = params.lambda1;
-    gsize = get_opts(params,'gsize',nan);
+    gsize = get_opt(params,'gsize',nan);
     ginds = get_opt(params,'ginds');
     gmult = get_opt(params,'gmult');
     intercept = get_opt(params,'intercept',false);
@@ -93,6 +116,8 @@ function viol = viol_kkt(x_curr,params,active,checklist)
     Y = params.Y;
     K = params.K;
     intercept = get_opt(params,'intercept',false);
+    ginds = get_opt(params,'ginds');
+    gmult = get_opt(params,'gmult');
     [x_active_inds, K_active_inds] = get_active_inds(active,params);
     x_act = x_curr(x_active_inds);
     if intercept
@@ -111,9 +136,30 @@ function viol = viol_kkt(x_curr,params,active,checklist)
     viol_params = params;
     [x_active_inds, K_active_inds] = get_active_inds(checklist,params);
     viol_params.K = K(:,K_active_inds);
+    if ~isempty(ginds);
+        viol_params.ginds = get_active_ginds(ginds,K_active_inds);
+        viol_params.gmult = gmult(checklist);
+    end
     
     viol = get_screen(x_curr(x_active_inds), viol_params, resid);
     viol = viol>params.lambda2;
+end
+
+function act_ginds = get_active_ginds(ginds,K_active_inds)
+    act_ginds = false(ginds(end),1);
+    act_ginds(ginds) = true;
+    act_ginds = find(act_ginds(K_active_inds));
+end
+
+function gn = group_norms2(x_curr,params)
+    gsize = get_opt(params,'gsize',nan);
+    ginds = get_opt(params,'ginds');
+    if isempty(ginds)
+        gn = sum(reshape(x_curr,gsize,[]).^2,1);
+    else
+        gn = cumsum(x_curr(:).^2);
+        gn = gn(ginds)-[0; gn(ginds(1:end-1))];
+    end
 end
 
 end

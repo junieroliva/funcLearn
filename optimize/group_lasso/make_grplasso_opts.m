@@ -1,6 +1,5 @@
-function [ o_opts ] = make_glasso_opts( opts )
-%MAKE_GLASSO_OPTS Summary of this function goes here
-%   Detailed explanation goes here
+function [ o_opts ] = make_grplasso_opts( opts )
+
 o_opts.beta = get_opt(opts,'beta',.8);
 o_opts.maxIter = get_opt(opts,'maxIter',1000);
 o_opts.epsilon = get_opt(opts,'epsilon',1E-8);

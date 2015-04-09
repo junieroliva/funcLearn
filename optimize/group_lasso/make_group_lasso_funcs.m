@@ -93,7 +93,7 @@ function y_s = prox(y,t)
         end
         if lambda2>0
             y_p = size(y_s,1);
-            y_s = reshape(y_s,gsize,[]);
+            %y_s = reshape(y_s,gsize,[]);
             if isnan(gsize)
                 rho = t*lambda2.*gmult;
                 r = cumsum(y_s(:).^2);
