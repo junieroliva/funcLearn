@@ -25,6 +25,7 @@ outfolds = crossvalind('Kfold', N, noutfolds);
 stime = tic;
 parfor i = 1:noutfolds
     topts = opts;
+    
     trn_set = true(N,1);
     trn_set(outfolds==i) = false;
     cv_lambdar = nan(ninfolds,1);
@@ -56,7 +57,7 @@ parfor i = 1:noutfolds
         norms(i,:) = sqrt(sum(reshape(beta_act(1:end-1),M_n,[]).^2,1));
     else
         cY_pred{i} = PC(~trn_set,:)*beta_act;
-        norms(i,:) = sqrt(sum(reshape(beta_act,M_n,[]).^2,[]));
+        norms(i,:) = sqrt(sum(reshape(beta_act,M_n,[]).^2,1));
     end
 
     csqerr{i} = (Y(~trn_set)-cY_pred{i}).^2;
