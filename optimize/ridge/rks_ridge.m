@@ -58,6 +58,7 @@ lambdas = get_opt(opts,'lambdas',[1/64 1/32 1/16 1/8 1/4 1/2 1 2 4 8 16]);
 nlambdas = length(lambdas);
 
 % get bandwidths to validate and random features
+do_sin = get_opt(opts,'do_sin', false);
 input_rand = get_opt(opts,'input_rand', false);
 if ~input_rand
     sigma2s = get_opt(opts,'sigma2s');
@@ -81,9 +82,11 @@ else
     D = size(XW,2);
     sigma2s = get_opt(opts,'sigma2s',1);
 end
-b = (2*pi)*rand(1,D);
 rks.W = W;
-rks.b = b;
+if ~do_sin
+    b = (2*pi)*rand(1,D);
+    rks.b = b;
+end
 
 % cross-validate bandwitdth/lambda using kitchen sinks
 reg_opts = get_opt(opts, 'reg_opts', struct);
@@ -94,7 +97,6 @@ reg_opts.eigen_decomp = get_opt(reg_opts,'eigen_decomp', false);
 
 stime = tic;
 nsigma2s = length(sigma2s);
-eyeD = speye(D);
 hol_mses = nan(nsigma2s,nlambdas);
 min_mse = inf;
 mli = nan;
@@ -103,12 +105,17 @@ B = nan;
 for si = 1:nsigma2s
     sigma2 = sigma2s(si);
     % features
-    Phi = sqrt(2/D)*cos(bsxfun(@plus,sqrt(1/sigma2)*XW(~tst_set,:),b));
+    if ~do_sin
+        Phi = sqrt(2/D)*cos(bsxfun(@plus,sqrt(1/sigma2)*XW(~tst_set,:),b));
+    else
+        Phi = sqrt(1/D)*[cos(sqrt(1/sigma2)*XW(~tst_set,:)) sin(sqrt(1/sigma2)*XW(~tst_set,:))];
+    end
     % regress based on random features
     rreg = reg_func(Phi, Y(~tst_set,:), reg_opts);
     hol_mses(si,:) = rreg.cv.lam_mse;
     [mv,mi] = min(rreg.cv.lam_mse);
     if mv<min_mse
+        min_mse = mv;
         msi = si;
         mli = mi;
         B = rreg.beta;
@@ -137,13 +144,17 @@ cv_stats.lambdas = lambdas;
 rks.sigma2 = sigma2s(msi);
 cv_stats.lambda = lambdas(mli);
 cv_stats.sigma2 = sigma2s(msi);
+sigma2 = cv_stats.sigma2;
+lambda = cv_stats.lambda;
 
-rfeats = sqrt(2/D)*cos(bsxfun(@plus,sqrt(1/sigma2)*XW,b));
+if ~do_sin
+    rfeats = sqrt(2/D)*cos(bsxfun(@plus,sqrt(1/sigma2)*XW,b));
+else
+    rfeats = sqrt(1/D)*[cos(sqrt(1/sigma2)*XW) sin(sqrt(1/sigma2)*XW)];
+end
 % get predicted response for test instances
-% Phi = sqrt(2/D)*cos(bsxfun(@plus,sqrt(1/sigma2)*XW(trn_set|hol_set,:),b));
-% PhiTPhi = Phi'*Phi;
-% PhiTY = Phi'*Y(trn_set|hol_set,:);
-% B = (PhiTPhi+lambda*eyeD)\PhiTY;
+Phi = rfeats(~tst_set,:);
+B = (Phi'*Phi+lambda*speye(size(Phi,2)))\(Phi'*Y(~tst_set,:));
 tst_stats = struct;
 if any(tst_set)
     t_Phi = rfeats(tst_set,:);
