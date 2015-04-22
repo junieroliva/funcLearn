@@ -28,6 +28,8 @@ end
 
 verbose = get_opt(opts,'verbose',false);
 reg_func = get_opt(opts,'reg_func',@ridge_reg);
+hol_set = [];
+trn_set = [];
 
 % get training/hold-out/testing sets
 [N,di] = size(X);
@@ -137,6 +139,9 @@ for si = 1:nsigma2s
 %     end
 end
 % get optimal
+cv_stats.trn_set = trn_set;
+cv_stats.hol_set = hol_set;
+cv_stats.tst_set = tst_set;
 cv_stats.hmse = min(hol_mses(:));
 cv_stats.hol_mses = hol_mses;
 cv_stats.sigma2s = sigma2s;
