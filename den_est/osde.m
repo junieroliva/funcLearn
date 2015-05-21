@@ -19,7 +19,8 @@ p = [];
 if iscell(x) % bulk mode, cv sigma2 on a subset if needed
     N = length(x);
     d = size(x{1},2);
-    if ~isfield(opts,'inds')
+    inds = get_opt(opts,'inds');
+    if isempty(inds)
         N_rot = get_opt(opts, 'N_rot', min(N,20));
         rprm = randperm(N,N_rot);
         norms = nan(N_rot,1);
@@ -36,6 +37,7 @@ if iscell(x) % bulk mode, cv sigma2 on a subset if needed
         
         opts.inds = inds(ind_used,:);
         osp.inds = opts.inds;
+        inds = opts.inds;
     end
     % compute the projection coefficients
     pc = nan(N,size(inds,1));
