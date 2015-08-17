@@ -7,7 +7,7 @@ end
 
 [n,d] = size(x);
 
-max_norm = get_opt(opts, 'max_norm', max(min(20,n-1),ceil(n/2)));
+max_norm = get_opt(opts, 'max_norm', (n-2)^(1/d));
 list = 0:max_norm;
 inds = outerprodinds(list, d, max_norm);
 phix = eval_basis(x, inds);
