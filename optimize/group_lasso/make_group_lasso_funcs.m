@@ -16,6 +16,7 @@ ginds = get_opt(params,'ginds'); % indices for last member of each group
 gsize = nan;
 grep = [];
 gmult = [];
+do_logistic = get_opt(params,'do_logistic',false);
 if isempty(ginds)
     gsize = get_opt(params,'gsize',1);
 else
@@ -48,34 +49,68 @@ function o = obj(x)
     end
 end
 function o = g(y)
-    if intercept
-        if size(y,1)>1
-            o = bsxfun(@minus,Y-K*y(1:end-1,:),y(end,:));
+    if ~do_logistic
+        if intercept
+            if size(y,1)>1
+                o = bsxfun(@minus,Y-K*y(1:end-1,:),y(end,:));
+            else
+                o = bsxfun(@minus,Y,y(end,:));
+            end
+            y = y(1:end-1,:);
         else
-            o = bsxfun(@minus,Y,y(end,:));
+            o = Y-K*y;
         end
-        y = y(1:end-1,:);
+        o = o(:)'*o(:)/2;
     else
-        o = Y-K*y;
+        if intercept
+            if size(y,1)>1
+                o = K*y(1:end-1)+y(end);
+            else
+                o = y(end)*ones(size(Y));
+            end
+            y = y(1:end-1);
+        else
+            o = K*y;
+        end
+        o = -Y'*o+sum(log(1+exp(o)),1);
     end
-    o = o(:)'*o(:)/2;
     if lambdae>0 && ~isempty(y)
         o = o + lambdae*(y(:)'*y(:))/2;
     end
 end
 function grad = grad_g(y)
+    if ~do_logistic
+        if intercept
+            if size(y,1)>1
+                resid = bsxfun(@plus,K*y(1:end-1,:),y(end,:))-Y;
+            else
+                resid = bsxfun(@plus,-Y,y(end,:));
+            end
+        else
+            resid = K*y-Y;
+        end
+    else
+        if intercept
+            if size(y,1)>1
+                o = K*y(1:end-1)+y(end);
+            else
+                o = y(end)*ones(size(Y));
+            end
+        else
+            o = K*y;
+        end
+        resid = 1./(1+exp(-o)) - Y;
+    end
+    
     if intercept
         if size(y,1)>1
-            resid = bsxfun(@plus,K*y(1:end-1,:),y(end,:))-Y;
             grad = K'*resid;
             grad = [grad; sum(resid)];
             grad(1:end-1,:) = grad(1:end-1,:)+lambdae*y(1:end-1,:);
         else
-            resid = bsxfun(@plus,-Y,y(end,:));
             grad = sum(resid);
         end
     else
-        resid = K*y-Y;
         grad = K'*resid;
         grad = grad+lambdae*y;
     end

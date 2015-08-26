@@ -22,11 +22,7 @@ while first_opt || any(viol)
     if sum(active_inds)>0
         [x_curr(active_inds),obj] = fista(x_curr(active_inds), act_funcs, opts);
     else
-        if get_opt(params,'intercept',false)
-             obj = sum((params.Y-mean(params.Y)).^2)/2;
-        else
-            obj = sum(params.Y.^2)/2; % TODO: need to consider intercept case?
-        end
+        obj = act_funcs.obj(x_curr(active_inds));
     end
     % check for kkt violators in covariates that did not pass strong rule
     checklist = ~active(:) & ~srule(:);

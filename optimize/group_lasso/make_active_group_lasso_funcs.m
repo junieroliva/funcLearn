@@ -81,17 +81,32 @@ function screen = get_screen(x, params, varargin)
     ginds = get_opt(params,'ginds');
     gmult = get_opt(params,'gmult');
     intercept = get_opt(params,'intercept',false);
+    do_logistic = get_opt(params,'do_logistic',false);
     
     if ~isempty(varargin)
         resid = varargin{1};
     else
-        if intercept
-            resid = K*x(1:end-1)+x(end)-Y;
+        if ~do_logistic
+            if intercept
+                resid = K*x(1:end-1)+x(end)-Y;
+            else
+                resid = K*x-Y;
+            end
         else
-            resid = K*x-Y;
+            if intercept
+                if size(x,1)>1
+                    o = K*x(1:end-1)+x(end);
+                else
+                    o = x(end,:);
+                end
+            else
+                o = K*x;
+            end
+            resid = 1./(1+exp(-o)) - Y;
         end
     end
     y_s = K'*resid;
+    
     if intercept
         y_s = y_s+lambdae*x(1:end-1);
     else
@@ -118,20 +133,40 @@ function viol = viol_kkt(x_curr,params,active,checklist)
     intercept = get_opt(params,'intercept',false);
     ginds = get_opt(params,'ginds');
     gmult = get_opt(params,'gmult');
+    do_logistic = get_opt(params,'do_logistic',false);
+    
     [x_active_inds, K_active_inds] = get_active_inds(active,params);
     x_act = x_curr(x_active_inds);
-    if intercept
-        if size(x_act,1)>1
-            resid = K(:,K_active_inds)*x_act(1:end-1)+x_act(end)-Y;
+    
+    if ~do_logistic
+        if intercept
+            if size(x_act,1)>1
+                resid = K(:,K_active_inds)*x_act(1:end-1)+x_act(end)-Y;
+            else
+                resid = x_act(end)-Y;
+            end
         else
-            resid = x_act(end)-Y;
+            if ~isempty(x_act)
+                resid = K(:,K_active_inds)*x_act-Y;
+            else
+                resid = -Y;
+            end
         end
     else
-        if ~isempty(x_act)
-            resid = K(:,K_active_inds)*x_act-Y;
+        if intercept
+            if size(x_act,1)>1
+                o = K(:,K_active_inds)*x_act(1:end-1)+x_act(end);
+            else
+                o = x_act(end,:);
+            end
         else
-            resid = -Y;
+            if ~isempty(x_act)
+                o = K(:,K_active_inds)*x_act;
+            else
+                o = zeros(size(Y));
+            end
         end
+        resid = 1./(1+exp(-o)) - Y;
     end
     viol_params = params;
     [x_active_inds, K_active_inds] = get_active_inds(checklist,params);
