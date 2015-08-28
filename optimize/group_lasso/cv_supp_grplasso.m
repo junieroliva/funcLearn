@@ -1,4 +1,4 @@
-function [ active, supp, lambda, lambdae, lambdar, lambdas, lambdaes, lambdars ] = ...
+function [ active, supp, lambda, lambdae, lambdar, lambdas, lambdaes, lambdars, beta ] = ...
     cv_supp_grplasso( Y, K, g, varargin )
 % Cross-validate the support of a group lasso problem with response Y and 
 % covariate matrix K while chosing lambdas.
@@ -10,6 +10,7 @@ else
     opts = varargin{1};
 end
 N = size(K,1);
+class_prob = do_classify(Y);
 
 % set up groups
 if length(g)==1
@@ -43,7 +44,11 @@ intercept = get_opt(opts,'intercept',true);
 maxactive = get_opt(opts,'maxactive',inf);
 
 % ridge lambdas and elastic-net lambda
-lambdars = get_opt(opts,'lambdars',10.^(15:-1:-15));
+if class_prob
+    lambdars = get_opt(opts, 'lambdars', 10.^(6:-1:-3));
+else
+    lambdars = get_opt(opts,'lambdars',10.^(15:-1:-15));
+end
 nlambdars = length(lambdars);
 lambdaes = get_opt(opts,'lambdaes',[0 4.^(1:2)]);
 nlambdaes = length(lambdaes);
@@ -79,10 +84,12 @@ params.ginds = ginds;
 params.gmult = gmult;
 params.lambda1 = 0;
 params.intercept = intercept;
+params.do_logistic = class_prob;
 
-best_hol_MSE = inf;
+best_hol_err = inf;
 best_active = [];
 best_supp = [];
+best_beta = [];
 best_lambda = nan;
 best_lambdar = nan;
 best_lambdae = nan;
@@ -105,59 +112,142 @@ for le = 1:nlambdaes
         active = active(:);
 
         % get ridge estimates using found support -- fast for fat matrices
-        best_hol_MSE_r = inf;
+        best_hol_err_r = inf;
         best_lambdar_r = nan;
-        if nactive>0
-            if intercept
-                K_act = [K(:,active) ones(N_trn,1)];
-                K_hol_act = [K_hol(:,active) ones(N_hol,1)];
-            else
-                K_act = K(:,active);
-                K_hol_act = K_hol(:,active);
-            end
-            [U,S] = eig(K_act*K_act');
-            S = diag(S);
-            KtU = K_act'*U;
-            KtY = K_act'*Y;
-            UtKKtY = KtU'*KtY;
-            hol_MSEs = nan(nlambdars,1);
-            for lr=1:nlambdars
-                lambdar = lambdars(lr);
-                %beta_act = (1/lambdar)*(Ig-PC_act'*U*diag(1./(S+lambdar))*U'*PC_act)*(PC_act'*Y);
-                beta_act = (1/lambdar)*(KtY-KtU*(UtKKtY./(S+lambdar)));
-                hol_MSE = mean( (Y_hol-K_hol_act*beta_act).^2 );
-                hol_MSEs(lr) = hol_MSE;
-                if hol_MSE<best_hol_MSE_r
-                    best_hol_MSE_r = hol_MSE;
-                    best_lambdar_r = lambdars(lr);
+        if ~params.do_logistic
+            if nactive>0
+                if intercept
+                    K_act = [K(:,active) ones(N_trn,1)];
+                    K_hol_act = [K_hol(:,active) ones(N_hol,1)];
+                else
+                    K_act = K(:,active);
+                    K_hol_act = K_hol(:,active);
                 end
-                if hol_MSE<best_hol_MSE
-                    best_hol_MSE = hol_MSE;
+                [U,S] = eig(K_act*K_act');
+                S = diag(S);
+                KtU = K_act'*U;
+                KtY = K_act'*Y;
+                UtKKtY = KtU'*KtY;
+                hol_errs = nan(nlambdars,1);
+                for lr=1:nlambdars
+                    lambdar = lambdars(lr);
+                    %beta_act = (1/lambdar)*(Ig-PC_act'*U*diag(1./(S+lambdar))*U'*PC_act)*(PC_act'*Y);
+                    beta_act = (1/lambdar)*(KtY-KtU*(UtKKtY./(S+lambdar)));
+                    hol_err = mean( (Y_hol-K_hol_act*beta_act).^2 );
+                    hol_errs(lr) = hol_err;
+                    if hol_err<best_hol_err_r
+                        best_hol_err_r = hol_err;
+                        best_lambdar_r = lambdars(lr);
+                    end
+                    if hol_err<best_hol_err
+                        best_hol_err = hol_err;
+                        best_active = gactive;
+                        best_supp = active;
+                        
+                        best_lambda = lambdas(l);
+                        best_lambdar = lambdars(lr);
+                        best_lambdae = lambdaes(le);
+                        
+                        best_beta = sparse(size(K,2),1);
+                        if ~intercept
+                            best_beta(active) = beta_act;
+                        else
+                            best_beta(active) = beta_act(1:end-1);
+                            best_beta = [best_beta; beta_act(end)];
+                        end
+                    end
+                end
+            else
+                if intercept
+                    best_hol_err_r = mean((Y_hol-beta(end)).^2);
+                else
+                    best_hol_err_r = mean(Y_hol.^2);
+                end
+                if best_hol_err_r<best_hol_err
+                    best_hol_err = best_hol_err_r;
                     best_active = gactive;
                     best_supp = active;
+                    
                     best_lambda = lambdas(l);
-                    best_lambdar = lambdars(lr);
+                    best_lambdar = max(lambdars);
                     best_lambdae = lambdaes(le);
+                    
+                    best_beta = sparse(size(K,2),1);
+                    if intercept
+                        best_beta = [best_beta; beta_act(end)];
+                    end
                 end
             end
         else
-            if intercept
-                best_hol_MSE_r = mean((Y_hol-beta(end)).^2);
+            options_act = optimoptions(@fminunc,'GradObj','on','Algorithm','quasi-newton','Display','off');
+            if nactive>0
+                K_act = K(:,active);
+                K_hol_act = K_hol(:,active);
+                
+                params_act = params;
+                params_act.K = K_act;
+                params_act.lambda1 = 0;
+                params_act.lambda2 = 0;
+                beta_act = zeros(size(K_act,2)+intercept,1);
+                hol_errs = nan(nlambdars,1);
+                for lr=1:nlambdars
+                    params_act.lambdae = lambdars(lr);
+                    funcs_act = make_group_lasso_funcs(params_act);
+                    optiLasso = @(x)multi_output(x, @(y)funcs_act.g(y), @(y)funcs_act.grad_g(y));
+                    beta_act = fminunc(optiLasso,beta_act,options_act);
+                    % get hold out error
+                    if ~intercept
+                        hol_err = mean( (K_hol_act*beta_act>=0) ~= Y_hol );
+                    else
+                        hol_err = mean( (K_hol_act*beta_act(1:end-1)+beta_act(end)>=0) ~= Y_hol );
+                    end
+                    hol_errs(lr) = hol_err;
+                    if hol_err<best_hol_err_r
+                        best_hol_err_r = hol_err;
+                        best_lambdar_r = lambdars(lr);
+                    end
+                    if hol_err<best_hol_err
+                        best_hol_err = hol_err;
+                        best_active = gactive;
+                        best_supp = active;
+                        
+                        best_lambda = lambdas(l);
+                        best_lambdar = lambdars(lr);
+                        best_lambdae = lambdaes(le);
+                        
+                        best_beta = sparse(size(K,2),1);
+                        if ~intercept
+                            best_beta(active) = beta_act;
+                        else
+                            best_beta(active) = beta_act(1:end-1);
+                            best_beta = [best_beta; beta_act(end)];
+                        end
+                    end
+                end
             else
-                best_hol_MSE_r = mean(Y_hol.^2);
-            end
-            if best_hol_MSE_r<best_hol_MSE
-                best_hol_MSE = best_hol_MSE_r;
-                best_active = gactive;
-                best_supp = active;
-                best_lambda = lambdas(l);
-                best_lambdar = max(lambdars);
-                best_lambdae = lambdaes(le);
+                if intercept
+                    best_hol_err_r = mean(Y_hol~=mode(Y));
+                else
+                    best_hol_err_r = mean(Y_hol~=1);
+                end
+                if best_hol_err_r<best_hol_err
+                    best_hol_err = best_hol_err_r;
+                    best_active = gactive;
+                    best_supp = active;
+                    best_lambda = lambdas(l);
+                    best_lambdar = max(lambdars);
+                    best_lambdae = lambdaes(le);
+                    
+                    best_beta = sparse(size(K,2),1);
+                    if intercept
+                        best_beta = [best_beta; -log(1/mean(Y)-1)];
+                    end
+                end
             end
         end
         
         if verbose
-            fprintf('[l:%g, lr:%g, le:%g] active: %i, hol_mse: %g elapsed:%f \n', lambdas(l), best_lambdar_r, lambdaes(le), nactive, best_hol_MSE_r, toc(stime));
+            fprintf('[l:%g, lr:%g, le:%g] active: %i, hol_err: %g elapsed:%f \n', lambdas(l), best_lambdar_r, lambdaes(le), nactive, best_hol_err_r, toc(stime));
         end
 
         if nactive>maxactive
@@ -170,6 +260,6 @@ supp = best_supp;
 lambda = best_lambda;
 lambdar = best_lambdar;
 lambdae = best_lambdae;
-
+beta = best_beta;
 end
 
