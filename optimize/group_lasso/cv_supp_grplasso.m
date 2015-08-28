@@ -45,7 +45,7 @@ maxactive = get_opt(opts,'maxactive',inf);
 
 % ridge lambdas and elastic-net lambda
 if class_prob
-    lambdars = get_opt(opts, 'lambdars', 10.^(6:-1:-3));
+    lambdars = get_opt(opts, 'lambdars', 10.^(5:-1:-2));
 else
     lambdars = get_opt(opts,'lambdars',10.^(15:-1:-15));
 end
@@ -174,7 +174,7 @@ for le = 1:nlambdaes
                     
                     best_beta = sparse(size(K,2),1);
                     if intercept
-                        best_beta = [best_beta; beta_act(end)];
+                        best_beta = [best_beta; beta(end)];
                     end
                 end
             end
@@ -189,12 +189,18 @@ for le = 1:nlambdaes
                 params_act.lambda1 = 0;
                 params_act.lambda2 = 0;
                 beta_act = zeros(size(K_act,2)+intercept,1);
+%                 beta_act = beta(active);
+%                 if intercept
+%                     beta_act = [beta_act; beta(end)];
+%                 end
                 hol_errs = nan(nlambdars,1);
                 for lr=1:nlambdars
                     params_act.lambdae = lambdars(lr);
                     funcs_act = make_group_lasso_funcs(params_act);
                     optiLasso = @(x)multi_output(x, @(y)funcs_act.g(y), @(y)funcs_act.grad_g(y));
                     beta_act = fminunc(optiLasso,beta_act,options_act);
+%                     funcs_act = make_group_lasso_funcs(params_act);
+%                     beta_act = fista(beta_act, funcs_act, cv_opts);
                     % get hold out error
                     if ~intercept
                         hol_err = mean( (K_hol_act*beta_act>=0) ~= Y_hol );

@@ -52,7 +52,8 @@ opts.lambdas = lambdas;
 
 % ridge lambdas and elastic-net lambda
 if class_prob
-    lambdars = get_opt(opts, 'lambdars', 10.^(6:-1:-3));
+    lambdars = get_opt(opts, 'lambdars', logspace(5,-2,8));
+    %lambdars = get_opt(opts, 'lambdars', logspace(0,-1,10));
 else
     lambdars = get_opt(opts,'lambdars',10.^(20:-1:-20));
 end
@@ -75,7 +76,7 @@ lambdar = nan(noutfolds,1);
 betas = cell(noutfolds,1);
 outfolds = crossvalind('Kfold', N, noutfolds);
 stime = tic;
-parfor i = 1:noutfolds
+for i = 1:noutfolds
     topts = opts;
     trn_set = true(N,1);
     trn_set(outfolds==i) = false;
