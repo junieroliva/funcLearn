@@ -15,7 +15,7 @@ class_prob = do_classify(Y);
 % set up groups
 if length(g)==1
     if mod(size(K,2),g)~=0
-        error('#covariates not disvisible by #groups indicated.');
+        error('#covariates not divisible by #groups indicated.');
     end
     gsize = size(K,2)/g;
     ginds = [];
