@@ -5,7 +5,7 @@ ginds = groups.ginds;
 gmult = groups.gmult;
 
 nlambdas = get_opt(opts,'nlambdas',100);
-min_lambda_ratio = get_opt(opts,'min_lambda_ratio',1E-2);
+min_lambda_ratio = get_opt(opts,'min_lambda_ratio',.033);
 intercept = get_opt(opts,'intercept',true);
 if intercept
     Y_0 = Y-mean(Y);

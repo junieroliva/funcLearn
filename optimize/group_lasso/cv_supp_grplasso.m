@@ -47,7 +47,7 @@ maxactive = get_opt(opts,'maxactive',inf);
 if class_prob
     lambdars = get_opt(opts, 'lambdars', 10.^(5:-1:-2));
 else
-    lambdars = get_opt(opts,'lambdars',10.^(15:-1:-15));
+    lambdars = get_opt(opts,'lambdars',10.^(9:-1:-6));
 end
 nlambdars = length(lambdars);
 lambdaes = get_opt(opts,'lambdaes',[0 4.^(1:2)]);
