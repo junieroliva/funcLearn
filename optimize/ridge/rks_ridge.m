@@ -53,8 +53,9 @@ if strcmp(cv, 'hold')
         hol_set(hol_set) = ~trn_set;
         trn_set = ~hol_set & ~tst_set;
     end
-    N_TRAIN = sum(trn_set);
 end
+N_TRAIN = sum(trn_set);
+
 % ridge penalties
 lambdas = get_opt(opts,'lambdas',[1/64 1/32 1/16 1/8 1/4 1/2 1 2 4 8 16]);
 nlambdas = length(lambdas);
@@ -122,6 +123,9 @@ for si = 1:nsigma2s
         mli = mi;
         B = rreg.beta;
     end
+    if verbose
+        fprintf('bw = %g, best lambda = %g, best score:%g \n',sigma2, lambdas(mi), mv);
+    end
 %     Phi = sqrt(2/D)*cos(bsxfun(@plus,sqrt(1/sigma2)*XW(trn_set,:),b));
 %     PhiTPhi = Phi'*Phi;
 %     PhiTY = Phi'*Y(trn_set,:);
@@ -147,6 +151,7 @@ cv_stats.hol_mses = hol_mses;
 cv_stats.sigma2s = sigma2s;
 cv_stats.lambdas = lambdas;
 rks.sigma2 = sigma2s(msi);
+rks.D = D;
 cv_stats.lambda = lambdas(mli);
 cv_stats.sigma2 = sigma2s(msi);
 sigma2 = cv_stats.sigma2;
@@ -154,8 +159,10 @@ lambda = cv_stats.lambda;
 
 if ~do_sin
     rfeats = sqrt(2/D)*cos(bsxfun(@plus,sqrt(1/sigma2)*XW,b));
+    rks.rfeats = @(x)sqrt(2/D)*cos(bsxfun(@plus,sqrt(1/sigma2)*x*W,b));
 else
     rfeats = sqrt(1/D)*[cos(sqrt(1/sigma2)*XW) sin(sqrt(1/sigma2)*XW)];
+    rks.rfeats = @(x)sqrt(1/D)*[cos(sqrt(1/sigma2)*x*W) sin(sqrt(1/sigma2)*x*W)];
 end
 % get predicted response for test instances
 Phi = rfeats(~tst_set,:);

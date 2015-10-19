@@ -8,9 +8,10 @@ else
 end
 
 ensure_rep = get_opt(opts, 'ensure_rep', true);
+concat = get_opt(opts, 'concat', true);
 
 if ~iscell(x) 
-    [N,~,p] = size(y);
+    [N,n,p] = size(y);
     d = size(x,2);
     
     N_rot = get_opt(opts, 'N_rot', min(N,20));
@@ -19,8 +20,8 @@ if ~iscell(x)
     y = permute(y,[2 3 1]);
     inds = get_opt(opts, 'inds');
     if isempty(inds)
-        max_norm = get_opt(opts, 'max_norm');
-        if isempty(max_norm)
+        inds_norm = get_opt(opts, 'inds_norm');
+        if isempty(inds_norm)
             cv_norms = nan(N_rot, p_rot);
             irprm = randperm(N,N_rot);
             jrprm = randperm(p,p_rot);
@@ -30,18 +31,18 @@ if ~iscell(x)
                     cv_norms(ii,jj) = max(sqrt(sum(inds.^2,2)));
                 end
             end
-            max_norm = mean(cv_norms(:));
+            inds_norm = mean(cv_norms(:));
         end
           
-        inds = outerprodinds(0:max_norm,d,max_norm);
+        inds = outerprodinds(0:inds_norm,d,inds_norm);
         inds = sortrows( [ sum(inds.^2,2), inds] );
         inds = inds(:, 2:end);
         
         if ensure_rep && size(inds,1)<=4 
             % the functions are probably undersampled if we have so few
             % basis functions
-            max_norm = (N-1)^(1/d);
-            inds = outerprodinds(0:max_norm,d,max_norm);
+            inds_norm = (n-1)^(1/d);
+            inds = outerprodinds(0:inds_norm,d,inds_norm);
             inds = sortrows( [ sum(inds.^2,2), inds] );
             inds = inds(:, 2:end);
         end
@@ -58,7 +59,10 @@ if ~iscell(x)
     else % TODO: implement
         error('Need mtimesx package');
     end
-    pcs = reshape(pcs,[],N)';
+    
+    if concat
+        pcs = reshape(pcs,[],N)';
+    end
     
 else
     [cN,p] = size(x);
@@ -67,8 +71,8 @@ else
     
     inds = get_opt(opts, 'inds');
     if isempty(inds)
-        max_norm = get_opt(opts, 'max_norm');
-        if isempty(max_norm) 
+        inds_norm = get_opt(opts, 'inds_norm');
+        if isempty(inds_norm) 
             % TODO: consider making an option for seperate indices based on
             %       each input function
             cv_norms = nan(N_rot, p_rot);
@@ -80,7 +84,7 @@ else
                     cv_norms(ii,jj) = max(sqrt(sum(inds.^2,2)));
                 end
             end
-            opts.max_norm = mean(cv_norms(:));
+            opts.inds_norm = mean(cv_norms(:));
         end
     end
     

@@ -24,7 +24,7 @@ for di=1:d
         phidi(:,k) = phi_k(x(:,di),inds_di(k));
     end
     % multiply with the one-d basis functions (indexing starting from 1)
-    phix = phix.*phidi(:,inds(:,di)+miv+1);
+    phix = phix.*phidi(:,inds(:,di)-miv+1);
 end
 
 end
