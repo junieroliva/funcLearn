@@ -95,7 +95,13 @@ else
             [pcs{i,j}, inds{i,j}] = osfe(x{i,j}, y{i,j}, opts);
         end
     end
-    pcs = cell2mat(pcs);
+    if concat
+        if cN>1
+            % TODO: implement
+        else
+            pcs = cell2mat(pcs);
+        end
+    end
 end
 
 

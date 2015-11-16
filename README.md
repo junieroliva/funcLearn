@@ -37,6 +37,8 @@ addpath(genpath('/path/to/funcLearn/'))
 Demos
 --------
 Please see the following scripts to illustrate how to do various functional based ML tasks:
+>- `demos/getpcs_demo.m`
+Shows how to use osfe to get projection coefficients to represent functions 
 >- `demos/dist2real_demo.m`
 Perform distribution to real regression task on synthetic data using double basis 
 estimate as in *Fast Distribution to Real Regression.*

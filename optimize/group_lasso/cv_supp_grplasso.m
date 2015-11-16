@@ -82,7 +82,7 @@ params.Y = Y;
 params.gsize = gsize;
 params.ginds = ginds;
 params.gmult = gmult;
-params.lambda1 = 0;
+params.lambda1 = get_opt(opts,'lambda1',0);
 params.intercept = intercept;
 params.do_logistic = class_prob;
 

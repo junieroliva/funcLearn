@@ -21,13 +21,17 @@ function rstats = rreg_stats(X,Y,varargin)
             rstats.isfat = false;
         end
     else
-%         if size(X,1)< size(X,2)
-%             % TODO: implement
-%             rstats.isfat = true;
-%         else
+        if size(X,1)< size(X,2)
+            % TODO: implement
+            rstats.isfat = true;
+            rstats.X = X; 
+            rstats.Y = Y; 
+            rstats.XXt = X*X'; 
+            rstats.XXtY = rstats.XXt*Y;
+        else
             rstats.XtX = X'*X;
             rstats.XtY = X'*Y;
             rstats.isfat = false;
-%         end
+        end
     end
 end
