@@ -63,6 +63,7 @@ opts.lambdaes = lambdaes;
 
 % folds
 ninfolds = get_opt(opts,'ninfolds',5);
+ninfolds_run = get_opt(opts,'ninfolds_run',ninfolds);
 noutfolds = get_opt(opts,'noutfolds',N);
 
 funcs = make_active_group_lasso_funcs();
@@ -84,7 +85,7 @@ for i = 1:noutfolds
     cv_lambdae = nan(ninfolds,1);
     cv_lambdar = nan(ninfolds,1);
     infolds = crossvalind('Kfold', sum(trn_set), ninfolds);
-    for trl=1:ninfolds
+    for trl=1:ninfolds_run
         if verbose
             fprintf('*** [i: %i] trial: %i elapsed:%f \n', i, trl, toc(stime));
         end
