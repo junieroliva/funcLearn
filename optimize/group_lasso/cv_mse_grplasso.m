@@ -81,9 +81,9 @@ for i = 1:noutfolds
     topts = opts;
     trn_set = true(N,1);
     trn_set(outfolds==i) = false;
-    cv_lambda = nan(ninfolds,1);
-    cv_lambdae = nan(ninfolds,1);
-    cv_lambdar = nan(ninfolds,1);
+    cv_lambda = nan(ninfolds_run,1);
+    cv_lambdae = nan(ninfolds_run,1);
+    cv_lambdar = nan(ninfolds_run,1);
     infolds = crossvalind('Kfold', sum(trn_set), ninfolds);
     for trl=1:ninfolds_run
         if verbose
