@@ -90,7 +90,8 @@ lambdae = l_mult*rand*max(sqrt(sum(reshape(tA'*(Y-mean(Y)),m,[]).^2,1)));
 fopts.verbose = true;
 fopts.lambdae = lambdae;
 fopts.intercept = intercept;
-[objs,onorms,lambdas] = eval_FuSSO(Y,tA,p,fopts);
+%[objs,onorms,lambdas] = eval_FuSSO(Y,tA,p,fopts);
+[objs,onorms,lambdas] = eval_grplasso(Y,tA,p,fopts);
 % plot group norms
 figure;
 h1 = plot(lambdas,onorms(:,1:s),'r');
@@ -104,33 +105,33 @@ title('Group Norms vs. Lambda');
 %%%%%%%%%%%%%%%%%
 % Check with CVX
 %%%%%%%%%%%%%%%%%
-if exist('cvx_begin')
-    % number of lambdas to check
-    if ~exist('ncheck','var')
-        ncheck = 3;
-    end
-    lambda_rprm = randperm(length(lambdas),ncheck);
-    cvx_obj = nan(ncheck,1);
-    obj_diff = nan(ncheck,1);
-    obj_diff_rel = nan(ncheck,1);
-    for li=1:ncheck
-        stime = tic;
-        lambda = lambdas(lambda_rprm(li));
-        if intercept
-            cvx_begin
-                variables beta_hat(m,p) beta_0_hat
-                minimize( .5*sum_square(Y - tA*beta_hat(:) - beta_0_hat) + lambda*sum( norms(beta_hat) ) + .5*lambdae*(beta_hat(:)'*beta_hat(:)) )
-            cvx_end
-        else
-            beta_0_hat = 0;
-            cvx_begin
-                variables beta_hat(m,p)
-                minimize( .5*sum_square(Y - tA*beta_hat(:) - beta_0_hat) + lambda*sum( norms(beta_hat) ) + .5*lambdae*(beta_hat(:)'*beta_hat(:)) )
-            cvx_end
-        end
-        cvx_obj(li) = .5*sum_square(Y - tA*beta_hat(:) - beta_0_hat) + lambda*sum( norms(beta_hat) ) + .5*lambdae*(beta_hat(:)'*beta_hat(:));
-        obj_diff(li) = abs(objs(lambda_rprm(li))-cvx_obj(li));
-        obj_diff_rel(li) = obj_diff(li)/cvx_obj(li);
-        fprintf('\t# lambda:%g, obj_diff: %g, obj_diff_rel: %g, elapsed:%f \n', lambda, obj_diff(li), obj_diff_rel(li), toc(stime));
-    end
-end
+% if exist('cvx_begin')
+%     % number of lambdas to check
+%     if ~exist('ncheck','var')
+%         ncheck = 3;
+%     end
+%     lambda_rprm = randperm(length(lambdas),ncheck);
+%     cvx_obj = nan(ncheck,1);
+%     obj_diff = nan(ncheck,1);
+%     obj_diff_rel = nan(ncheck,1);
+%     for li=1:ncheck
+%         stime = tic;
+%         lambda = lambdas(lambda_rprm(li));
+%         if intercept
+%             cvx_begin
+%                 variables beta_hat(m,p) beta_0_hat
+%                 minimize( .5*sum_square(Y - tA*beta_hat(:) - beta_0_hat) + lambda*sum( norms(beta_hat) ) + .5*lambdae*(beta_hat(:)'*beta_hat(:)) )
+%             cvx_end
+%         else
+%             beta_0_hat = 0;
+%             cvx_begin
+%                 variables beta_hat(m,p)
+%                 minimize( .5*sum_square(Y - tA*beta_hat(:) - beta_0_hat) + lambda*sum( norms(beta_hat) ) + .5*lambdae*(beta_hat(:)'*beta_hat(:)) )
+%             cvx_end
+%         end
+%         cvx_obj(li) = .5*sum_square(Y - tA*beta_hat(:) - beta_0_hat) + lambda*sum( norms(beta_hat) ) + .5*lambdae*(beta_hat(:)'*beta_hat(:));
+%         obj_diff(li) = abs(objs(lambda_rprm(li))-cvx_obj(li));
+%         obj_diff_rel(li) = obj_diff(li)/cvx_obj(li);
+%         fprintf('\t# lambda:%g, obj_diff: %g, obj_diff_rel: %g, elapsed:%f \n', lambda, obj_diff(li), obj_diff_rel(li), toc(stime));
+%     end
+% end

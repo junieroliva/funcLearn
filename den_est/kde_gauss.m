@@ -120,8 +120,8 @@ else
 %             p(p<=eps) = eps;
 %         end
         
-        trunc_val = get_opt(opts,'trunc_val',eps);
-        p = trunc_density(p,trunc_val);
+%         trunc_val = get_opt(opts,'trunc_val',eps);
+%         p = trunc_density(p,trunc_val);
     end
 end
 

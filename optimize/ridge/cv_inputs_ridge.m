@@ -13,7 +13,7 @@ hol_set = [];
 trn_set = [];
 
 % get training/hold-out/testing sets
-N = size(Xs{1});
+N = size(Xs{1}, 1);
 tst_set = get_opt(opts,'tst_set');
 tperc = get_opt(opts,'tperc', .1);
 if isempty(tst_set) 
