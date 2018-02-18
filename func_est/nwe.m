@@ -1,5 +1,4 @@
 function [tst_stats, cv_stats] = nwe(X, Y, varargin)
-ts = tic;
 
 if isempty(varargin)
     opts = struct;
@@ -72,31 +71,38 @@ for bi = 1:nbands
     ho_scores(bi) = mean(ht_score(:,bi));
     fprintf('CV: bw = %g, score:%g \n',sigma_sq, ho_scores(bi));
 end
-et = toc(ts);
 cv_stats.ht_score = ht_score;
 cv_stats.ho_scores = ho_scores;
 
 % get optimal
 bi = find(ho_scores==min(ho_scores(:)));
+pDists = slmetric_pw(X(:,trn_set|hol_set), X(:,tst_set), 'sqdist');
+pDists = bsxfun(@minus,pDists,min(pDists));
+
 sigma_sq = bands(bi);
+w = exp(-pDists/(2*sigma_sq));
+w = bsxfun(@times,w,1./sum(w));
+pred_projs = Y(:,trn_set|hol_set)*w;
+tst_score = mean(sum((pred_projs-Y(:,tst_set)).^2,1));
+
+ts = tic;
+N_time = get_opt(opts,'N_time', 100);
 test_inds = find(tst_set);
-pred_projs = nan(size(Y(:,tst_set)));
 test_nw_pred_time_per = 0;
-for i = 1:N_T
+for i = 1:N_time
     tic;
     pDists = slmetric_pw(X(:,trn_set|hol_set),X(:,test_inds(i)),'sqdist');
     pDists = bsxfun(@minus,pDists,min(pDists));
     w = exp(-pDists/(2*sigma_sq));
     w = bsxfun(@times,w,1./sum(w));
-    pred_projs(:,i) = Y(:,trn_set|hol_set)*w;
+    Y(:,trn_set|hol_set)*w;
     test_nw_pred_time_per = test_nw_pred_time_per + toc;
 end
-test_nw_pred_time_per = test_nw_pred_time_per/N_T;
+test_nw_pred_time_per = test_nw_pred_time_per/N_time;
 tst_stats.pred_time = test_nw_pred_time_per;
  
-tst_score = mean(sum((pred_projs-Y(:,tst_set)).^2,1));
 mean_pred = mean( sum( bsxfun(@minus,Y(:,tst_set),mean(Y(:,trn_set|hol_set),2)).^2, 1) );
-fprintf('TEST: bw = %g, score: %g, mean_pred score: %g (CVed in %g secs)\n',sigma_sq, tst_score, mean_pred, et);
+fprintf('TEST: bw = %g, score: %g, mean_pred score: %g\n',sigma_sq, tst_score, mean_pred);
 
 tst_stats.tst_score = tst_score;
 tst_stats.mean_pred = mean_pred;
