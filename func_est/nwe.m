@@ -85,21 +85,25 @@ w = bsxfun(@times,w,1./sum(w));
 pred_projs = Y(:,trn_set|hol_set)*w;
 tst_score = mean(sum((pred_projs-Y(:,tst_set)).^2,1));
 
-ts = tic;
-N_time = get_opt(opts,'N_time', 100);
-test_inds = find(tst_set);
-test_nw_pred_time_per = 0;
-for i = 1:N_time
-    tic;
-    pDists = slmetric_pw(X(:,trn_set|hol_set),X(:,test_inds(i)),'sqdist');
-    pDists = bsxfun(@minus,pDists,min(pDists));
-    w = exp(-pDists/(2*sigma_sq));
-    w = bsxfun(@times,w,1./sum(w));
-    Y(:,trn_set|hol_set)*w;
-    test_nw_pred_time_per = test_nw_pred_time_per + toc;
+
+N_time = get_opt(opts, 'N_time', 0);
+if N_time > 0
+    test_inds = find(tst_set);
+    test_nw_pred_time_per = 0;
+    X_ht = X(:,trn_set|hol_set);
+    ts = tic;
+    for i = 1:N_time
+        tic;
+        pDists = slmetric_pw(X_ht, X(:,test_inds(i)),'sqdist');
+        pDists = bsxfun(@minus,pDists,min(pDists));
+        w = exp(-pDists/(2*sigma_sq));
+        w = bsxfun(@times,w,1./sum(w));
+        Y(:,trn_set|hol_set)*w;
+        test_nw_pred_time_per = test_nw_pred_time_per + toc;
+    end
+    test_nw_pred_time_per = test_nw_pred_time_per/N_time;
+    tst_stats.pred_time = test_nw_pred_time_per;
 end
-test_nw_pred_time_per = test_nw_pred_time_per/N_time;
-tst_stats.pred_time = test_nw_pred_time_per;
  
 mean_pred = mean( sum( bsxfun(@minus,Y(:,tst_set),mean(Y(:,trn_set|hol_set),2)).^2, 1) );
 fprintf('TEST: bw = %g, score: %g, mean_pred score: %g\n',sigma_sq, tst_score, mean_pred);
